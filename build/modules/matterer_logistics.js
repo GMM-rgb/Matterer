@@ -5,19 +5,20 @@ export class Matterer {
         if (ValidScratchTypeDefinitions.indexOf(type) === -1) {
             return false;
         }
-        const valueLower = VALUE.toLowerCase().trim();
+        const forcedString = new String(VALUE).valueOf();
+        const valueLower = forcedString.toLowerCase().trim();
         if (type === 'boolean') {
             return valueLower === 'true' || valueLower === 'false';
         }
         if (type === 'number') {
-            return !isNaN(parseFloat(VALUE)) && isFinite(Number(VALUE));
+            return !isNaN(parseFloat(forcedString)) && isFinite(Number(forcedString));
         }
         if (type === 'string') {
-            return typeof VALUE === 'string';
+            return typeof forcedString === 'string';
         }
         if (type === 'object') {
             try {
-                const parsed = JSON.parse(VALUE);
+                const parsed = JSON.parse(forcedString);
                 return typeof parsed === 'object' && parsed !== null;
             }
             catch (_a) {
