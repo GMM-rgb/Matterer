@@ -34,4 +34,17 @@ export class Matterer {
 
         return false;
     }
+
+    public NewBoolean({ BOOL_VALUE } : { BOOL_VALUE: boolean }): boolean {
+        function ConvertRequestedValueToString(): string {
+            return String(BOOL_VALUE);
+        }
+
+        function BooleanInstancer(): Boolean {
+            var InstancedBoolean: Readonly<Boolean> = new Boolean(ConvertRequestedValueToString());
+            return InstancedBoolean
+        }
+
+        return BooleanInstancer().valueOf();
+    }
 }

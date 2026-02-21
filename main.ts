@@ -27,10 +27,26 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                         },
                     },
                 },
+                {
+                    blockType: Scratch.BlockType.BOOLEAN,
+                    opcode: (this.NewBoolean as Function).name.valueOf(),
+                    text: "new bool [BOOL_VALUE]",
+                    arguments: {
+                        BOOL_VALUE: {
+                            type: Scratch.ArgumentType.STRING,
+                            menu: "BooleanPickerMenu",
+                            defaultValue: "TRUE",
+                        }
+                    },
+                },
             ],
             menus: {
                 typeDefinitionMenu: {
                     items: new Array('string', 'number', 'boolean', 'object'),
+                    acceptReporters: true,
+                },
+                BooleanPickerMenu: {
+                    items: new Array('TRUE', 'FALSE'),
                     acceptReporters: true,
                 }
             }

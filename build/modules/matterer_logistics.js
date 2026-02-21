@@ -27,4 +27,14 @@ export class Matterer {
         }
         return false;
     }
+    NewBoolean({ BOOL_VALUE }) {
+        function ConvertRequestedValueToString() {
+            return String(BOOL_VALUE);
+        }
+        function BooleanInstancer() {
+            var InstancedBoolean = new Boolean(ConvertRequestedValueToString());
+            return InstancedBoolean;
+        }
+        return BooleanInstancer().valueOf();
+    }
 }
