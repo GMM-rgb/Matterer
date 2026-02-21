@@ -30,7 +30,7 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                 {
                     blockType: Scratch.BlockType.BOOLEAN,
                     opcode: (this.NewBoolean as Function).name.valueOf(),
-                    text: "new bool [BOOL_VALUE]",
+                    text: "new bool from [BOOL_VALUE]",
                     arguments: {
                         BOOL_VALUE: {
                             type: Scratch.ArgumentType.STRING,
