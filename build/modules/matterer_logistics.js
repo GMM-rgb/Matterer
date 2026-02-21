@@ -5,7 +5,7 @@ export class Matterer {
         if (ValidScratchTypeDefinitions.indexOf(type) === -1) {
             return false;
         }
-        const forcedString = new String(VALUE).valueOf();
+        const forcedString = String(VALUE);
         const valueLower = forcedString.toLowerCase().trim();
         if (type === 'boolean') {
             return valueLower === 'true' || valueLower === 'false';

@@ -8,7 +8,7 @@ export class Matterer {
             return false;
         }
 
-        const forcedString = new String(VALUE).valueOf();
+        const forcedString = String(VALUE);
         const valueLower = forcedString.toLowerCase().trim();
 
         if (type === 'boolean') {
