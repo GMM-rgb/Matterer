@@ -29,7 +29,11 @@ export class Matterer {
     }
     NewBoolean({ BOOL_VALUE }) {
         function ConvertRequestedValueToString() {
-            return String(BOOL_VALUE).toLowerCase().trim();
+            let Converted = null;
+            if (BOOL_VALUE !== undefined || BOOL_VALUE !== null) {
+                Converted = String(BOOL_VALUE).toLowerCase().trim();
+            }
+            return Converted !== null ? Converted : "";
         }
         function BooleanInstancer() {
             return ConvertRequestedValueToString() === 'true';

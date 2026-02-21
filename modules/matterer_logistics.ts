@@ -37,7 +37,13 @@ export class Matterer {
 
     public NewBoolean({ BOOL_VALUE } : { BOOL_VALUE: string }): boolean {
         function ConvertRequestedValueToString(): string {
-            return String(BOOL_VALUE).toLowerCase().trim();
+            let Converted = null;
+
+            if (BOOL_VALUE !== undefined || BOOL_VALUE !== null) {
+                Converted = String(BOOL_VALUE).toLowerCase().trim();
+            }
+
+            return Converted !== null ? Converted : "";
         }
 
         function BooleanInstancer(): boolean {
