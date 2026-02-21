@@ -1,4 +1,4 @@
-# Updating Our Gandi IDE Extension via jsDelivr
+# Updating The Gandi IDE Extension via jsDelivr
 
 ## Steps to push an update
 
