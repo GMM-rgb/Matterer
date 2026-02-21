@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "pretty": true,
+    "preserveConstEnums": true,
+    "removeComments": true,
+    "diagnostics": true,
+    "target": "ES6",
+    "lib": ["ES2015", "DOM"],
+    "outDir": "./build",
+  }
+}
