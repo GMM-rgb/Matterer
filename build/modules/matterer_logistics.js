@@ -29,12 +29,11 @@ export class Matterer {
     }
     NewBoolean({ BOOL_VALUE }) {
         function ConvertRequestedValueToString() {
-            return String(BOOL_VALUE);
+            return String(BOOL_VALUE).toLowerCase().trim();
         }
         function BooleanInstancer() {
-            var InstancedBoolean = new Boolean(ConvertRequestedValueToString());
-            return InstancedBoolean;
+            return ConvertRequestedValueToString() === 'true';
         }
-        return BooleanInstancer().valueOf();
+        return BooleanInstancer();
     }
 }

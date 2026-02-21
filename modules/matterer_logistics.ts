@@ -35,16 +35,15 @@ export class Matterer {
         return false;
     }
 
-    public NewBoolean({ BOOL_VALUE } : { BOOL_VALUE: boolean }): boolean {
+    public NewBoolean({ BOOL_VALUE } : { BOOL_VALUE: string }): boolean {
         function ConvertRequestedValueToString(): string {
-            return String(BOOL_VALUE);
+            return String(BOOL_VALUE).toLowerCase().trim();
         }
 
-        function BooleanInstancer(): Boolean {
-            var InstancedBoolean: Readonly<Boolean> = new Boolean(ConvertRequestedValueToString());
-            return InstancedBoolean
+        function BooleanInstancer(): boolean {
+            return ConvertRequestedValueToString() === 'true';
         }
 
-        return BooleanInstancer().valueOf();
+        return BooleanInstancer();
     }
 }
