@@ -36,6 +36,10 @@ export class Matterer {
     }
 
     public NewBoolean({ BOOL_VALUE } : { BOOL_VALUE: string }): boolean {
+        /**
+         * 
+         * @returns {string}
+         */
         function ConvertRequestedValueToString(): string {
             let Converted = null;
 
@@ -46,6 +50,10 @@ export class Matterer {
             return Converted !== null ? Converted : "";
         }
 
+        /**
+         * 
+         * @returns {boolean}
+         */
         function BooleanInstancer(): boolean {
             return ConvertRequestedValueToString() === 'true';
         }

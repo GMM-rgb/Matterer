@@ -10,6 +10,7 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
             color1: new String("#f542b0").valueOf(),
             color2: new String("#c41681").valueOf(),
             color3: new String("#a500a2").valueOf(),
+            menuIconURI: "",
             blocks: [
                 {
                     blockType: Scratch.BlockType.BOOLEAN,
