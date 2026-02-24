@@ -74,7 +74,7 @@ export class Matterer {
 
         if (TARGET_TRANSPARENCY !== null && !(TARGET_TRANSPARENCY < 0) && !(TARGET_TRANSPARENCY > Matterer.MaxTransparency.valueOf())) {
             try {
-                ScratchVM.on("FRAMERATE_CHANGED", frameRateListener);
+                // ScratchVM.on("FRAMERATE_CHANGED", frameRateListener);
 
                 const CurrentSprite = ScratchVM.runtime.sequencer?.activeThread?.target || null;
                 const InitialTransparency = CurrentSprite?.effects.ghost.valueOf() || 0;
@@ -95,7 +95,7 @@ export class Matterer {
                     );
                 }
             } finally {
-                ScratchVM.off("FRAMERATE_CHANGED", frameRateListener);
+                // ScratchVM.off("FRAMERATE_CHANGED", frameRateListener);
             }
         }
     }
