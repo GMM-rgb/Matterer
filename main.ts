@@ -15,6 +15,11 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
             color3: new String("#a500a2").valueOf(),
             // menuIconURI: "",
             blocks: [
+                "---",
+                {
+                    blockType: Scratch.BlockType.LABEL,
+                    text: "Boolean Controls",
+                },
                 {
                     blockType: Scratch.BlockType.BOOLEAN,
                     opcode: (this.ValidateInputType as Function).name.valueOf(),
@@ -48,7 +53,6 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                     blockType: Scratch.BlockType.LABEL,
                     text: "Animation Utilites",
                 },
-                "---",
                 {
                     blockType: Scratch.BlockType.COMMAND,
                     opcode: (this.FadeTransparency as Function).name.valueOf(),

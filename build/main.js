@@ -8,6 +8,11 @@ class MattererDefinitions extends Matterer {
             color2: new String("#c41681").valueOf(),
             color3: new String("#a500a2").valueOf(),
             blocks: [
+                "---",
+                {
+                    blockType: Scratch.BlockType.LABEL,
+                    text: "Boolean Controls",
+                },
                 {
                     blockType: Scratch.BlockType.BOOLEAN,
                     opcode: this.ValidateInputType.name.valueOf(),
@@ -41,7 +46,6 @@ class MattererDefinitions extends Matterer {
                     blockType: Scratch.BlockType.LABEL,
                     text: "Animation Utilites",
                 },
-                "---",
                 {
                     blockType: Scratch.BlockType.COMMAND,
                     opcode: this.FadeTransparency.name.valueOf(),
