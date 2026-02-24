@@ -52,7 +52,7 @@ export class Matterer {
     FadeTransparency(_a) {
         return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION }) {
             var _b, _c;
-            const ScratchVM = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm;
+            const ScratchVM = (Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) || new VM();
             const frameRateListener = (newFramerate) => {
                 throw new Error(`Framerate was changed to ${newFramerate}, could not complete fade transparency cycle.`);
             };
