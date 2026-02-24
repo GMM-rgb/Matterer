@@ -1,3 +1,10 @@
+# Fetching The Turbowarp Types
+
+#### Assuming there is a `/nnm4w/` directory on the System:
+```bash
+git clone https://github.com/Gandi-IDE/gandi-types C:/nvm4w/nodejs/node_modules/@turbowarp/types
+```
+
 # Updating The Gandi IDE Extension via jsDelivr
 
 ## Steps to push an update
