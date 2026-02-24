@@ -43,6 +43,12 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                         }
                     },
                 },
+                "---",
+                {
+                    blockType: Scratch.BlockType.LABEL,
+                    text: "Animation Utilites",
+                },
+                "---",
                 {
                     blockType: Scratch.BlockType.COMMAND,
                     opcode: (this.FadeTransparency as Function).name.valueOf(),
