@@ -1,4 +1,13 @@
-var ValidScratchTypeDefinitions = ['string', 'number', 'boolean', 'object'];
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+const ValidScratchTypeDefinitions = ['string', 'number', 'boolean', 'object'];
 export class Matterer {
     ValidateInputType({ VALUE, TYPE_DEFINITION }) {
         const type = TYPE_DEFINITION.toLowerCase();
@@ -30,7 +39,7 @@ export class Matterer {
     NewBoolean({ BOOL_VALUE }) {
         function ConvertRequestedValueToString() {
             let Converted = null;
-            if (BOOL_VALUE !== undefined || BOOL_VALUE !== null) {
+            if (BOOL_VALUE !== undefined && BOOL_VALUE !== null) {
                 Converted = String(BOOL_VALUE).toLowerCase().trim();
             }
             return Converted !== null ? Converted : "";
@@ -40,4 +49,40 @@ export class Matterer {
         }
         return BooleanInstancer();
     }
+    FadeTransparency(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION }) {
+            var _b, _c;
+            const ScratchVM = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm;
+            const frameRateListener = (newFramerate) => {
+                throw new Error(`Framerate was changed to ${newFramerate}, could not complete fade transparency cycle.`);
+            };
+            if (TARGET_TRANSPARENCY !== null && !(TARGET_TRANSPARENCY < 0) && !(TARGET_TRANSPARENCY > Matterer.MaxTransparency.valueOf())) {
+                try {
+                    ScratchVM.on("FRAMERATE_CHANGED", frameRateListener);
+                    const CurrentSprite = ((_c = (_b = ScratchVM.runtime.sequencer) === null || _b === void 0 ? void 0 : _b.activeThread) === null || _c === void 0 ? void 0 : _c.target) || null;
+                    const InitialTransparency = (CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.effects.ghost.valueOf()) || 0;
+                    const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * Number(ScratchVM.runtime.frameLoop.framerate.valueOf()));
+                    const TransparencyStepsSize = Math.abs((TARGET_TRANSPARENCY - InitialTransparency) / TransparencySteps);
+                    for (let CurrentTransparencyStep = 0; CurrentTransparencyStep < TransparencySteps; CurrentTransparencyStep++) {
+                        const NewTransparencyValue = InitialTransparency + (TransparencyStepsSize * CurrentTransparencyStep);
+                        ((CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.effects.ghost) || 0).valueOf() !== NewTransparencyValue ? CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.setEffect("ghost", NewTransparencyValue.valueOf()) : undefined;
+                        yield Matterer.waitOneFrame();
+                    }
+                }
+                catch (FadeError) {
+                    if (FadeError !== null || FadeError !== undefined) {
+                        console.error(new String(FadeError)
+                            .valueOf()
+                            .toString()
+                            .trim());
+                    }
+                }
+                finally {
+                    ScratchVM.off("FRAMERATE_CHANGED", frameRateListener);
+                }
+            }
+        });
+    }
 }
+Matterer.waitOneFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
+Matterer.MaxTransparency = 100;

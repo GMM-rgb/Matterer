@@ -36,6 +36,22 @@ class MattererDefinitions extends Matterer {
                         }
                     },
                 },
+                {
+                    blockType: Scratch.BlockType.COMMAND,
+                    opcode: this.FadeTransparency.name.valueOf(),
+                    text: "animate transparency to [TARGET_TRANSPARENCY] in direction [ANIMATION_DIRECTION]",
+                    arguments: {
+                        TARGET_TRANSPARENCY: {
+                            type: Scratch.ArgumentType.NUMBER,
+                            defaultValue: 1,
+                        },
+                        ANIMATION_DIRECTION: {
+                            type: Scratch.ArgumentType.STRING,
+                            menu: "AnimationDirectionChoice",
+                            defaultValue: "IN",
+                        }
+                    }
+                }
             ],
             menus: {
                 typeDefinitionMenu: {
@@ -45,6 +61,10 @@ class MattererDefinitions extends Matterer {
                 BooleanPickerMenu: {
                     items: new Array('TRUE', 'FALSE'),
                     acceptReporters: true,
+                },
+                AnimationDirectionChoice: {
+                    items: new Array('IN', 'OUT'),
+                    acceptReporters: false,
                 }
             }
         };

@@ -1,4 +1,7 @@
 /// <reference path="C:/nvm4w/nodejs/node_modules/@turbowarp/types/types/scratch-vm-extension.d.ts" />
+/// <reference path="C:/nvm4w/nodejs/node_modules/@turbowarp/types/types/scratch-render.d.ts" />
+/// <reference path="C:/nvm4w/nodejs/node_modules/@turbowarp/types/types/scratch-vm.d.ts" />
+/// <reference path="C:/nvm4w/nodejs/node_modules/@turbowarp/types/types/events.d.ts" />
 
 import { Matterer } from "./modules/matterer_logistics.js";
 
@@ -40,6 +43,22 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                         }
                     },
                 },
+                {
+                    blockType: Scratch.BlockType.COMMAND,
+                    opcode: (this.FadeTransparency as Function).name.valueOf(),
+                    text: "animate transparency to [TARGET_TRANSPARENCY] in direction [ANIMATION_DIRECTION]",
+                    arguments: {
+                        TARGET_TRANSPARENCY: {
+                            type: Scratch.ArgumentType.NUMBER,
+                            defaultValue: 1,
+                        },
+                        ANIMATION_DIRECTION: {
+                            type: Scratch.ArgumentType.STRING,
+                            menu: "AnimationDirectionChoice",
+                            defaultValue: "IN",
+                        }
+                    }
+                }
             ],
             menus: {
                 typeDefinitionMenu: {
@@ -49,6 +68,11 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                 BooleanPickerMenu: {
                     items: new Array('TRUE', 'FALSE'),
                     acceptReporters: true,
+                },
+                // FadeTransparency Block; Parameter Input Menu
+                AnimationDirectionChoice: {
+                    items: new Array('IN', 'OUT'),
+                    acceptReporters: false,
                 }
             }
         }

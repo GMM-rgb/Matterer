@@ -1,7 +1,11 @@
 {
+  "buildOptions": {
+    "verbose": true,
+    "traceResolution": true,
+  },
   "compilerOptions": {
-    "strict": true,
     "pretty": true,
+    "alwaysStrict": true,
     "preserveConstEnums": true,
     "removeComments": true,
     "diagnostics": true,

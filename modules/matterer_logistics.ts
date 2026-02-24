@@ -1,6 +1,10 @@
-var ValidScratchTypeDefinitions = ['string', 'number', 'boolean', 'object'] as const;
+const ValidScratchTypeDefinitions: Readonly<string[]> = ['string', 'number', 'boolean', 'object'];
 
 export class Matterer {
+    static waitOneFrame = (): Promise<void> => 
+    new Promise(resolve => requestAnimationFrame(() => resolve()));
+    static MaxTransparency: Readonly<number> = 100;
+
     public ValidateInputType({ VALUE, TYPE_DEFINITION } : { VALUE: string, TYPE_DEFINITION: string }): boolean {
         const type = TYPE_DEFINITION.toLowerCase();
 
@@ -43,7 +47,7 @@ export class Matterer {
         function ConvertRequestedValueToString(): string {
             let Converted = null;
 
-            if (BOOL_VALUE !== undefined || BOOL_VALUE !== null) {
+            if (BOOL_VALUE !== undefined && BOOL_VALUE !== null) {
                 Converted = String(BOOL_VALUE).toLowerCase().trim();
             }
 
@@ -59,5 +63,39 @@ export class Matterer {
         }
 
         return BooleanInstancer();
+    }
+
+    public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION } : { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: string }) {
+        const ScratchVM = Scratch?.vm; // Scratch VirtualMachine Engine
+        const frameRateListener = (newFramerate: number): void => {
+            throw new Error(`Framerate was changed to ${newFramerate}, could not complete fade transparency cycle.`);
+        };
+
+        if (TARGET_TRANSPARENCY !== null && !(TARGET_TRANSPARENCY < 0) && !(TARGET_TRANSPARENCY > Matterer.MaxTransparency.valueOf())) {
+            try {
+                ScratchVM.on("FRAMERATE_CHANGED", frameRateListener);
+
+                const CurrentSprite = ScratchVM.runtime.sequencer?.activeThread?.target || null;
+                const InitialTransparency = CurrentSprite?.effects.ghost.valueOf() || 0;
+                const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * Number(ScratchVM.runtime.frameLoop.framerate.valueOf()));
+                const TransparencyStepsSize = Math.abs((TARGET_TRANSPARENCY - InitialTransparency) / TransparencySteps);
+
+                for (let CurrentTransparencyStep = 0; CurrentTransparencyStep < TransparencySteps ; CurrentTransparencyStep++) {
+                    const NewTransparencyValue = InitialTransparency + (TransparencyStepsSize * CurrentTransparencyStep);
+                    (CurrentSprite?.effects.ghost || 0).valueOf() !== NewTransparencyValue ? CurrentSprite?.setEffect(VM.Effect.Ghost, NewTransparencyValue.valueOf()) : undefined;
+                    await Matterer.waitOneFrame();
+                }
+            } catch (FadeError) {
+                if (FadeError !== null || FadeError !== undefined) {
+                    console.error(new String(FadeError)
+                        .valueOf()
+                        .toString()
+                        .trim()
+                    );
+                }
+            } finally {
+                ScratchVM.off("FRAMERATE_CHANGED", frameRateListener);
+            }
+        }
     }
 }
