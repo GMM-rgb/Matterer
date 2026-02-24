@@ -8,6 +8,11 @@ class MattererDefinitions extends Matterer {
             color2: new String("#c41681").valueOf(),
             color3: new String("#a500a2").valueOf(),
             blocks: [
+                {
+                    blockType: Scratch.BlockType.BUTTON,
+                    func: String().trim(),
+                    text: "🔄️ Reset Default Values"
+                },
                 "---",
                 {
                     blockType: Scratch.BlockType.LABEL,

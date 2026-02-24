@@ -15,6 +15,11 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
             color3: new String("#a500a2").valueOf(),
             // menuIconURI: "",
             blocks: [
+                {
+                    blockType: Scratch.BlockType.BUTTON,
+                    func: String().trim(),
+                    text: "🔄️ Reset Default Values"
+                },
                 "---",
                 {
                     blockType: Scratch.BlockType.LABEL,
