@@ -54,7 +54,10 @@ export class Matterer {
             var _b, _c, _d;
             if (TARGET_TRANSPARENCY !== null && !(TARGET_TRANSPARENCY < 0) && !(TARGET_TRANSPARENCY > Matterer.MaxTransparency.valueOf())) {
                 try {
-                    const ScratchVM = ((_b = (Scratch && Scratch.vm)) !== null && _b !== void 0 ? _b : Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) || null;
+                    const ScratchVM = (_b = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) !== null && _b !== void 0 ? _b : null;
+                    if (ScratchVM === null || ScratchVM === undefined) {
+                        throw new Error("ScratchVM is unavailable.");
+                    }
                     const CurrentSprite = ((_d = (_c = ScratchVM.runtime.sequencer) === null || _c === void 0 ? void 0 : _c.activeThread) === null || _d === void 0 ? void 0 : _d.target) || null;
                     const InitialTransparency = (CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.effects.ghost.valueOf()) || 0;
                     const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * Number(ScratchVM.runtime.frameLoop.framerate.valueOf()));
@@ -72,6 +75,9 @@ export class Matterer {
                             .toString()
                             .trim());
                     }
+                }
+                finally {
+                    return;
                 }
             }
         });

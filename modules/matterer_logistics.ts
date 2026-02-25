@@ -72,7 +72,11 @@ export class Matterer {
 
         if (TARGET_TRANSPARENCY !== null && !(TARGET_TRANSPARENCY < 0) && !(TARGET_TRANSPARENCY > Matterer.MaxTransparency.valueOf())) {
             try {
-                const ScratchVM = ((Scratch && Scratch.vm) ?? Scratch?.vm) || null // Scratch VirtualMachine Engine
+                const ScratchVM = Scratch?.vm ?? null;
+
+                if (ScratchVM === null || ScratchVM === undefined) {
+                    throw new Error("ScratchVM is unavailable.");
+                }
 
                 const CurrentSprite = ScratchVM.runtime.sequencer?.activeThread?.target || null;
                 const InitialTransparency = CurrentSprite?.effects.ghost.valueOf() || 0;
@@ -92,6 +96,8 @@ export class Matterer {
                         .trim()
                     );
                 }
+            } finally {
+                return;
             }
         }
     }
