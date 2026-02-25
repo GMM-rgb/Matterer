@@ -66,11 +66,12 @@ export class Matterer {
         return BooleanInstancer();
     }
 
-    public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION } : { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: string }) {
+    public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION } : { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: string }, util: any ) {
         // const frameRateListener = (newFramerate: number): void => {
         //     throw new Error(`Framerate was changed to ${newFramerate}, could not complete fade transparency cycle.`);
         // };
 
+        console.log("Utility", util);
         console.log("Scratch:", Scratch);
         console.log("Scratch.vm:", Scratch?.vm);
 
