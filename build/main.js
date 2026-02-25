@@ -1,7 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const matterer_logistics_js_1 = require("./modules/matterer_logistics.js");
-class MattererDefinitions extends matterer_logistics_js_1.Matterer {
+import { Matterer } from "./modules/matterer_logistics.js";
+class MattererDefinitions extends Matterer {
     getInfo() {
         return {
             id: "matterer",

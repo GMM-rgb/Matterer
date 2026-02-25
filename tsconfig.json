@@ -12,9 +12,9 @@
     "diagnostics": true,
     "declaration": true,
     "outDir": "./build",
-    "moduleResolution": "nodenext",
+    "moduleResolution": "bundler",
     "lib": ["ES2015", "DOM"],
-    "module": "node20",
+    "module": "esnext",
     "target": "es6",
    }
 }
