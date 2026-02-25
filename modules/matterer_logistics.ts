@@ -70,6 +70,11 @@ export class Matterer extends ResetDefaultValues {
         return BooleanInstancer();
     }
 
+    public FetchVisibilityState(util: BlockUtility): boolean {
+        const CurrentSpriteVisibilityFetch = util.target ?? null;
+        return new Boolean(CurrentSpriteVisibilityFetch.visible).valueOf();
+    }
+
     public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE } : { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: "IN" | "OUT", ANIMATION_STYLE: AnimationStyles }, util: BlockUtility ) {
         // console.log("Scratch:", Scratch);
         // console.log("Utility", util);

@@ -79,6 +79,16 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                         },
                     },
                 },
+                "---",
+                {
+                    blockType: Scratch.BlockType.LABEL,
+                    text: "Visual Control",
+                },
+                {
+                    blockType: Scratch.BlockType.REPORTER,
+                    opcode: (this.FetchVisibilityState as Function).name.valueOf(),
+                    text: "currently visible?",
+                }
             ],
             menus: {
                 // 
