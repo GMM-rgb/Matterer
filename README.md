@@ -4,6 +4,8 @@
 ```bash
 git clone https://github.com/Gandi-IDE/gandi-types C:/nvm4w/nodejs/node_modules/@turbowarp/types
 ```
+OR; get it from my Google Drive
+https://drive.google.com/drive/folders/1tTJZWrGZKd9IV7b1WJq1b7YCwTCitvz5?usp=drive_link
 ---
 # Linking TurboWarp Types
 #### *`MacOS / darwin`* Machine
