@@ -89,7 +89,8 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                     blockType: Scratch.BlockType.REPORTER,
                     opcode: (this.FetchVisibilityState as Function).name.valueOf(),
                     text: "sprite currently visible?",
-                }
+                    arguments: {},
+                },
             ],
             menus: {
                 // 

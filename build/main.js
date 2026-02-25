@@ -83,7 +83,8 @@ class MattererDefinitions extends matterer_logistics_js_1.Matterer {
                     blockType: Scratch.BlockType.REPORTER,
                     opcode: this.FetchVisibilityState.name.valueOf(),
                     text: "sprite currently visible?",
-                }
+                    arguments: {},
+                },
             ],
             menus: {
                 typeDefinitionMenu: {
