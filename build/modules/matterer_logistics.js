@@ -54,8 +54,15 @@ export class Matterer {
         return BooleanInstancer();
     }
     FadeTransparency(_a, util_1) {
-        return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION }, util) {
+        return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE }, util) {
             var _b, _c, _d, _e, _f, _g;
+            const easings = {
+                linear: (t) => t,
+                easeIn: (t) => t * t,
+                easeOut: (t) => t * (2 - t),
+                easeInOut: (t) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t,
+                bounce: (t) => 1 - Math.abs(Math.cos(t * Math.PI * 2.5)) * (1 - t),
+            };
             if (TARGET_TRANSPARENCY !== null && TARGET_TRANSPARENCY >= 0 && TARGET_TRANSPARENCY <= Matterer.MaxTransparency) {
                 try {
                     const ScratchRuntime = (_b = util.runtime) !== null && _b !== void 0 ? _b : null;
@@ -69,8 +76,10 @@ export class Matterer {
                     const EndValue = ANIMATION_DIRECTION === "OUT" ? 0 : CalculatedGhostValueTarget;
                     const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * ScratchRuntime.frameLoop.framerate);
                     const TransparencyStepSize = (EndValue - StartValue) / TransparencySteps;
-                    for (let step = 0; step < TransparencySteps; step++) {
-                        CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.setEffect("ghost", StartValue + TransparencyStepSize * step);
+                    for (let CurrentTransparencyStep = 0; CurrentTransparencyStep < TransparencySteps; CurrentTransparencyStep++) {
+                        const t = CurrentTransparencyStep / TransparencySteps;
+                        const eased = easings[ANIMATION_STYLE](t);
+                        CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.setEffect("ghost", StartValue + (EndValue - StartValue) * eased);
                         yield Matterer.waitOneFrame();
                     }
                     CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.setEffect("ghost", EndValue);

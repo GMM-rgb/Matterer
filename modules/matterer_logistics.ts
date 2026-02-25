@@ -1,5 +1,7 @@
 const ValidScratchTypeDefinitions: Readonly<string[]> = ['string', 'number', 'boolean', 'object'];
 
+type AnimationStyles = "linear" | "easeIn" | "easeOut" | "easeInOut" | "bounce";
+
 export class Matterer {
     static waitOneFrame = (): Promise<void> => new Promise(resolve => requestAnimationFrame(() => resolve()));
     static MaxTransparency: Readonly<number> = 100;
@@ -66,10 +68,18 @@ export class Matterer {
         return BooleanInstancer();
     }
 
-    public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION } : { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: "IN" | "OUT" }, util: BlockUtility ) {
+    public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE } : { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: "IN" | "OUT", ANIMATION_STYLE: AnimationStyles }, util: BlockUtility ) {
         // console.log("Scratch:", Scratch);
         // console.log("Utility", util);
         // console.log("Scratch Runtime:", util.runtime);
+
+        const easings = {
+            linear: (t: number) => t,
+            easeIn: (t: number) => t * t,
+            easeOut: (t: number) => t * (2 - t),
+            easeInOut: (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t,
+            bounce: (t: number) => 1 - Math.abs(Math.cos(t * Math.PI * 2.5)) * (1 - t),
+        };
 
         if (TARGET_TRANSPARENCY !== null && TARGET_TRANSPARENCY >= 0 && TARGET_TRANSPARENCY <= Matterer.MaxTransparency) {
             try {
@@ -86,12 +96,15 @@ export class Matterer {
 
                 const StartValue = InitialTransparency;
                 const EndValue = ANIMATION_DIRECTION === "OUT" ? 0 : CalculatedGhostValueTarget;
-                
+
                 const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * ScratchRuntime.frameLoop.framerate);
                 const TransparencyStepSize = (EndValue - StartValue) / TransparencySteps;
 
-                for (let step = 0; step < TransparencySteps; step++) {
-                    CurrentSprite?.setEffect(VM.Effect.Ghost, StartValue + TransparencyStepSize * step);
+                for (let CurrentTransparencyStep = 0; CurrentTransparencyStep < TransparencySteps; CurrentTransparencyStep++) {
+                    const t = CurrentTransparencyStep / TransparencySteps;
+                    const eased = easings[ANIMATION_STYLE](t);
+                    CurrentSprite?.setEffect(VM.Effect.Ghost, StartValue + (EndValue - StartValue) * eased);
+                    // Await the next frame interpretation
                     await Matterer.waitOneFrame();
                 }
 
