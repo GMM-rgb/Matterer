@@ -62,7 +62,7 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                 {
                     blockType: Scratch.BlockType.COMMAND,
                     opcode: (this.FadeTransparency as Function).name.valueOf(),
-                    text: "animate transparency to [TARGET_TRANSPARENCY] in direction [ANIMATION_DIRECTION]",
+                    text: "animate transparency to [TARGET_TRANSPARENCY] in direction [ANIMATION_DIRECTION] with animation style [ANIMATION_STYLE]",
                     arguments: {
                         TARGET_TRANSPARENCY: {
                             type: Scratch.ArgumentType.NUMBER,
@@ -72,22 +72,33 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                             type: Scratch.ArgumentType.STRING,
                             menu: "AnimationDirectionChoice",
                             defaultValue: "IN",
-                        }
-                    }
-                }
+                        },
+                        ANIMATION_STYLE: {
+                            type: Scratch.ArgumentType.STRING,
+                            menu: "AnimationStyleChoice",
+                            defaultValue: "linear",
+                        },
+                    },
+                },
             ],
             menus: {
+                // 
                 typeDefinitionMenu: {
                     items: new Array('string', 'number', 'boolean', 'object'),
                     acceptReporters: true,
                 },
+                // 
                 BooleanPickerMenu: {
                     items: new Array('TRUE', 'FALSE'),
                     acceptReporters: true,
                 },
-                // FadeTransparency Block; Parameter Input Menu
+                // FadeTransparency Block; Parameter Input Menus
                 AnimationDirectionChoice: {
                     items: new Array('IN', 'OUT'),
+                    acceptReporters: false,
+                },
+                AnimationStyleChoice: {
+                    items: new Array('linear', 'easeIn', 'easeOut', 'easeInOut', 'bounce'),
                     acceptReporters: false,
                 }
             }
