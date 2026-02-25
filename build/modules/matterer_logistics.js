@@ -63,18 +63,17 @@ export class Matterer {
                         throw new Error("ScratchRuntime is unavailable.");
                     }
                     const CurrentSprite = (_f = ((_e = (_d = (_c = ScratchRuntime.sequencer) === null || _c === void 0 ? void 0 : _c.activeThread) === null || _d === void 0 ? void 0 : _d.target) !== null && _e !== void 0 ? _e : util.target)) !== null && _f !== void 0 ? _f : null;
-                    const InitialTransparency = (_g = CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.effects.ghost.valueOf()) !== null && _g !== void 0 ? _g : 0;
-                    const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * Number(ScratchRuntime.frameLoop.framerate.valueOf()));
-                    const TransparencyStepsSize = Math.abs((TARGET_TRANSPARENCY - InitialTransparency) / TransparencySteps);
+                    const CalculatedGhostValueTarget = TARGET_TRANSPARENCY * 100;
+                    const InitialTransparency = (_g = CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.effects.ghost) !== null && _g !== void 0 ? _g : 0;
+                    const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * ScratchRuntime.frameLoop.framerate);
+                    const TransparencyStepsSize = Math.abs((CalculatedGhostValueTarget - InitialTransparency) / TransparencySteps);
                     for (let CurrentTransparencyStep = 0; CurrentTransparencyStep < TransparencySteps; CurrentTransparencyStep++) {
-                        let InOutValueShift = 1;
-                        if (ANIMATION_DIRECTION === "OUT") {
-                            InOutValueShift = -1;
-                        }
-                        const NewTransparencyValue = InitialTransparency + (TransparencyStepsSize * CurrentTransparencyStep) * Math.ceil(InOutValueShift);
-                        ((CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.effects.ghost) || 0).valueOf() !== NewTransparencyValue ? CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.setEffect("ghost", NewTransparencyValue.valueOf()) : undefined;
+                        const InOutValueShift = ANIMATION_DIRECTION === "OUT" ? -1 : 1;
+                        const NewTransparencyValue = InitialTransparency + (TransparencyStepsSize * CurrentTransparencyStep) * InOutValueShift;
+                        CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.setEffect("ghost", NewTransparencyValue);
                         yield Matterer.waitOneFrame();
                     }
+                    CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.setEffect("ghost", ANIMATION_DIRECTION === "OUT" ? 0 : TARGET_TRANSPARENCY);
                 }
                 catch (FadeError) {
                     if (FadeError != null) {

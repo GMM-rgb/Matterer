@@ -80,21 +80,21 @@ export class Matterer {
                 }
 
                 const CurrentSprite = (ScratchRuntime.sequencer?.activeThread?.target ?? util.target) ?? null;
-                const InitialTransparency = CurrentSprite?.effects.ghost.valueOf() ?? 0;
-                const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * Number(ScratchRuntime.frameLoop.framerate.valueOf()));
-                const TransparencyStepsSize = Math.abs((TARGET_TRANSPARENCY - InitialTransparency) / TransparencySteps);
 
-                for (let CurrentTransparencyStep = 0; CurrentTransparencyStep < TransparencySteps ; CurrentTransparencyStep++) {
-                    let InOutValueShift: number = 1;
+                const CalculatedGhostValueTarget = TARGET_TRANSPARENCY * 100;
+                const InitialTransparency = CurrentSprite?.effects.ghost ?? 0;
+                const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * ScratchRuntime.frameLoop.framerate);
+                const TransparencyStepsSize = Math.abs((CalculatedGhostValueTarget - InitialTransparency) / TransparencySteps);
 
-                    if (ANIMATION_DIRECTION === "OUT") {
-                        InOutValueShift = -1;
-                    }
-
-                    const NewTransparencyValue = InitialTransparency + (TransparencyStepsSize * CurrentTransparencyStep) * Math.ceil(InOutValueShift);
-                    (CurrentSprite?.effects.ghost || 0).valueOf() !== NewTransparencyValue ? CurrentSprite?.setEffect(VM.Effect.Ghost, NewTransparencyValue.valueOf()) : undefined;
+                for (let CurrentTransparencyStep = 0; CurrentTransparencyStep < TransparencySteps; CurrentTransparencyStep++) {
+                    const InOutValueShift = ANIMATION_DIRECTION === "OUT" ? -1 : 1;
+                    const NewTransparencyValue = InitialTransparency + (TransparencyStepsSize * CurrentTransparencyStep) * InOutValueShift;
+                    CurrentSprite?.setEffect(VM.Effect.Ghost, NewTransparencyValue);
                     await Matterer.waitOneFrame();
                 }
+
+                // guarantees the sprite always land exactly on the inputted target
+                CurrentSprite?.setEffect(VM.Effect.Ghost, ANIMATION_DIRECTION === "OUT" ? 0 : TARGET_TRANSPARENCY);
             } catch (FadeError) {
                 if (FadeError != null) {
                     console.error(new String(FadeError).trim());
