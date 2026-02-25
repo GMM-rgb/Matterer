@@ -86,10 +86,16 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                     text: "Visual Control",
                 },
                 {
-                    blockType: Scratch.BlockType.REPORTER,
+                    blockType: Scratch.BlockType.BOOLEAN,
                     opcode: (this.FetchVisibilityState as Function).name.valueOf(),
-                    text: "sprite currently visible?",
-                    arguments: {},
+                    text: "sprite currently visible; returns [VALUE_TYPE]",
+                    arguments: {
+                        VALUE_TYPE: {
+                            type: Scratch.ArgumentType.STRING,
+                            menu: "ValueTypeSwitchMenu",
+                            defaultValue: "reporter",
+                        }
+                    },
                 },
             ],
             menus: {
@@ -102,6 +108,11 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                 BooleanPickerMenu: {
                     items: new Array('TRUE', 'FALSE'),
                     acceptReporters: true,
+                },
+                // 
+                ValueTypeSwitchMenu: {
+                    items: new Array('reporter', 'bool'),
+                    acceptReporters: false,
                 },
                 // FadeTransparency Block; Parameter Input Menus
                 // AnimatingPropertyChoiceSet: {

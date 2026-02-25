@@ -5,6 +5,7 @@ const ValidScratchTypeDefinitions: Readonly<string[]> = ['string', 'number', 'bo
 import { ResetDefaultValues } from "./button_palette_functionality/reset.js";
 
 export class Matterer extends ResetDefaultValues {
+    static ValueTypes = [String, Boolean];
     static waitOneFrame = (): Promise<void> => new Promise(resolve => requestAnimationFrame(() => resolve()));
     static MaxTransparency: Readonly<number> = 100;
 
@@ -70,9 +71,11 @@ export class Matterer extends ResetDefaultValues {
         return BooleanInstancer();
     }
 
-    public FetchVisibilityState(util: BlockUtility): boolean {
+    public FetchVisibilityState({ VALUE_TYPE } : { VALUE_TYPE: 'reporter' | 'bool' }, util: BlockUtility): string|boolean {
+        const RequestedValueTypeFormated = VALUE_TYPE === "reporter" ? 'String' : 'Boolean';
+        // 
         const CurrentSpriteVisibilityFetch = util.target ?? null;
-        return new Boolean(CurrentSpriteVisibilityFetch.visible).valueOf();
+        return new Matterer.ValueTypes[RequestedValueTypeFormated](CurrentSpriteVisibilityFetch.visible).valueOf();
     }
 
     public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE } : { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: "IN" | "OUT", ANIMATION_STYLE: AnimationStyles }, util: BlockUtility ) {
