@@ -1,3 +1,4 @@
+"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -7,8 +8,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Matterer = void 0;
 const ValidScratchTypeDefinitions = ['string', 'number', 'boolean', 'object'];
-export class Matterer {
+class Matterer {
     constructor(scratch) {
         this.scratch = scratch;
         undefined;
@@ -96,5 +99,6 @@ export class Matterer {
         });
     }
 }
+exports.Matterer = Matterer;
 Matterer.waitOneFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
 Matterer.MaxTransparency = 100;

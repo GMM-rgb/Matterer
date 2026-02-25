@@ -1,12 +1,19 @@
-# Fetching The Turbowarp Types
+# Fetching The TurboWarp Types
 
 #### Assuming there is a `/nnm4w/` directory on the System:
 ```bash
 git clone https://github.com/Gandi-IDE/gandi-types C:/nvm4w/nodejs/node_modules/@turbowarp/types
 ```
-
+---
+# Linking TurboWarp Types
+#### *`MacOS / darwin`* Machine
+```bash
+ln -s "../@turbowarp/types/types" turbowarp-types
+```
+```powershell
+mklink /D turbowarp-types "C:/nvm4w/nodejs/node_modules/@turbowarp/types/types"
+```
 # Updating The Gandi IDE Extension via jsDelivr
-
 ## Steps to push an update
 
 1. **Compile the TypeScript**

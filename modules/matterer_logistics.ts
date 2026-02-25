@@ -2,11 +2,13 @@ type AnimationStyles = "linear" | "easeIn" | "easeOut" | "easeInOut" | "bounce";
 
 const ValidScratchTypeDefinitions: Readonly<string[]> = ['string', 'number', 'boolean', 'object'];
 
-export class Matterer {
+import { ResetDefaultValues } from "./button_palette_functionality/reset.js";
+
+export class Matterer extends ResetDefaultValues {
     static waitOneFrame = (): Promise<void> => new Promise(resolve => requestAnimationFrame(() => resolve()));
     static MaxTransparency: Readonly<number> = 100;
 
-    constructor(private scratch: typeof Scratch) { undefined; }
+    constructor(private scratch: typeof Scratch) { super(); }
 
     public ValidateInputType({ VALUE, TYPE_DEFINITION } : { VALUE: string, TYPE_DEFINITION: string }): boolean {
         const type = TYPE_DEFINITION.toLowerCase();

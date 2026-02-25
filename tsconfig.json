@@ -2,6 +2,7 @@
   "buildOptions": {
     "verbose": true,
     "traceResolution": true,
+
   },
   "compilerOptions": {
     "pretty": true,
@@ -9,8 +10,11 @@
     "preserveConstEnums": true,
     "removeComments": true,
     "diagnostics": true,
-    "target": "ES6",
-    "lib": ["ES2015", "DOM"],
+    "declaration": true,
     "outDir": "./build",
-  }
+    "moduleResolution": "nodenext",
+    "lib": ["ES2015", "DOM"],
+    "module": "node20",
+    "target": "es6",
+   }
 }

@@ -1,9 +1,3 @@
-/// <reference path="C:/nvm4w/nodejs/node_modules/@turbowarp/types/types/scratch-vm-extension.d.ts" />
-/// <reference path="C:/nvm4w/nodejs/node_modules/@turbowarp/types/types/scratch-render.d.ts" />
-/// <reference path="C:/nvm4w/nodejs/node_modules/@turbowarp/types/types/scratch-vm.d.ts" />
-/// <reference path="C:/nvm4w/nodejs/node_modules/@turbowarp/types/types/events.d.ts" />
-/// <reference path="C:/nvm4w/nodejs/node_modules/@turbowarp/types/types/scratch-block-utility.d.ts" />
-
 import { Matterer } from "./modules/matterer_logistics.js";
 
 class MattererDefinitions extends Matterer implements Scratch.Extension {
@@ -18,7 +12,7 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
             blocks: [
                 {
                     blockType: Scratch.BlockType.BUTTON,
-                    func: String().trim(),
+                    func: new String((this.resetValues as Function).name).valueOf().trim(),
                     text: "🔄️ Reset Default Values"
                 },
                 "---",
@@ -62,8 +56,13 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                 {
                     blockType: Scratch.BlockType.COMMAND,
                     opcode: (this.FadeTransparency as Function).name.valueOf(),
-                    text: "animate transparency to [TARGET_TRANSPARENCY] in direction [ANIMATION_DIRECTION] with animation style [ANIMATION_STYLE]",
+                    text: "animate [ANIMATING_PROPERTY] to [TARGET_TRANSPARENCY] in direction [ANIMATION_DIRECTION] with animation style [ANIMATION_STYLE]",
                     arguments: {
+                        ANIMATING_PROPERTY: {
+                            type: Scratch.ArgumentType.STRING,
+                            menu: "AnimatingPropertyChoiceSet",
+                            defaultValue: "Transparency",
+                        },
                         TARGET_TRANSPARENCY: {
                             type: Scratch.ArgumentType.NUMBER,
                             defaultValue: 1,
@@ -93,6 +92,10 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                     acceptReporters: true,
                 },
                 // FadeTransparency Block; Parameter Input Menus
+                AnimatingPropertyChoiceSet: {
+                    items: new Array('Transparency', 'PositionY', 'PositionX', 'Size'),
+                    acceptReporters: true,
+                },
                 AnimationDirectionChoice: {
                     items: new Array('IN', 'OUT'),
                     acceptReporters: true,
