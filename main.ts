@@ -114,6 +114,7 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                     items: new Array('linear', 'easeIn', 'easeOut', 'easeInOut', 'bounce'),
                     acceptReporters: false,
                 }
+                // 
             }
         }
     }
