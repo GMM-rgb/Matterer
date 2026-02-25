@@ -66,15 +66,13 @@ export class Matterer {
     }
 
     public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION } : { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: string }) {
-        const ScratchVM = Scratch?.vm || Scratch.vm || null // Scratch VirtualMachine Engine
-
-        const frameRateListener = (newFramerate: number): void => {
-            throw new Error(`Framerate was changed to ${newFramerate}, could not complete fade transparency cycle.`);
-        };
+        // const frameRateListener = (newFramerate: number): void => {
+        //     throw new Error(`Framerate was changed to ${newFramerate}, could not complete fade transparency cycle.`);
+        // };
 
         if (TARGET_TRANSPARENCY !== null && !(TARGET_TRANSPARENCY < 0) && !(TARGET_TRANSPARENCY > Matterer.MaxTransparency.valueOf())) {
             try {
-                // ScratchVM.on("FRAMERATE_CHANGED", frameRateListener);
+                const ScratchVM = Scratch?.vm || Scratch.vm || null // Scratch VirtualMachine Enginez
 
                 const CurrentSprite = ScratchVM.runtime.sequencer?.activeThread?.target || null;
                 const InitialTransparency = CurrentSprite?.effects.ghost.valueOf() || 0;
@@ -94,8 +92,6 @@ export class Matterer {
                         .trim()
                     );
                 }
-            } finally {
-                // ScratchVM.off("FRAMERATE_CHANGED", frameRateListener);
             }
         }
     }
