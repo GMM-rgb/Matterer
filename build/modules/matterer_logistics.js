@@ -61,13 +61,13 @@ export class Matterer {
             console.log("Scratch Runtime:", util.runtime);
             if (TARGET_TRANSPARENCY !== null && !(TARGET_TRANSPARENCY < 0) && !(TARGET_TRANSPARENCY > Matterer.MaxTransparency.valueOf())) {
                 try {
-                    const ScratchVM = (_b = this.scratch.vm) !== null && _b !== void 0 ? _b : null;
-                    if (ScratchVM === null || ScratchVM === undefined) {
+                    const ScratchRuntime = (_b = util.runtime) !== null && _b !== void 0 ? _b : null;
+                    if (ScratchRuntime === null || ScratchRuntime === undefined) {
                         throw new Error("ScratchVM is unavailable.");
                     }
-                    const CurrentSprite = (_e = (_d = (_c = ScratchVM.runtime.sequencer) === null || _c === void 0 ? void 0 : _c.activeThread) === null || _d === void 0 ? void 0 : _d.target) !== null && _e !== void 0 ? _e : null;
+                    const CurrentSprite = (_e = (_d = (_c = ScratchRuntime.sequencer) === null || _c === void 0 ? void 0 : _c.activeThread) === null || _d === void 0 ? void 0 : _d.target) !== null && _e !== void 0 ? _e : null;
                     const InitialTransparency = (CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.effects.ghost.valueOf()) || 0;
-                    const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * Number(ScratchVM.runtime.frameLoop.framerate.valueOf()));
+                    const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * Number(ScratchRuntime.frameLoop.framerate.valueOf()));
                     const TransparencyStepsSize = Math.abs((TARGET_TRANSPARENCY - InitialTransparency) / TransparencySteps);
                     for (let CurrentTransparencyStep = 0; CurrentTransparencyStep < TransparencySteps; CurrentTransparencyStep++) {
                         const NewTransparencyValue = InitialTransparency + (TransparencyStepsSize * CurrentTransparencyStep);
