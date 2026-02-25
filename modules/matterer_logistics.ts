@@ -4,7 +4,7 @@ export class Matterer {
     static waitOneFrame = (): Promise<void> => new Promise(resolve => requestAnimationFrame(() => resolve()));
     static MaxTransparency: Readonly<number> = 100;
 
-    constructor(private scratch: typeof Scratch) {}
+    constructor(private scratch: typeof Scratch) { undefined; }
 
     public ValidateInputType({ VALUE, TYPE_DEFINITION } : { VALUE: string, TYPE_DEFINITION: string }): boolean {
         const type = TYPE_DEFINITION.toLowerCase();
@@ -70,6 +70,9 @@ export class Matterer {
         // const frameRateListener = (newFramerate: number): void => {
         //     throw new Error(`Framerate was changed to ${newFramerate}, could not complete fade transparency cycle.`);
         // };
+
+        console.log("Scratch:", Scratch);
+        console.log("Scratch.vm:", Scratch?.vm);
 
         if (TARGET_TRANSPARENCY !== null && !(TARGET_TRANSPARENCY < 0) && !(TARGET_TRANSPARENCY > Matterer.MaxTransparency.valueOf())) {
             try {
