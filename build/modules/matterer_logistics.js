@@ -9,6 +9,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 const ValidScratchTypeDefinitions = ['string', 'number', 'boolean', 'object'];
 export class Matterer {
+    constructor(scratch) {
+        this.scratch = scratch;
+    }
     ValidateInputType({ VALUE, TYPE_DEFINITION }) {
         const type = TYPE_DEFINITION.toLowerCase();
         if (ValidScratchTypeDefinitions.indexOf(type) === -1) {
@@ -51,14 +54,14 @@ export class Matterer {
     }
     FadeTransparency(_a) {
         return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION }) {
-            var _b, _c, _d;
+            var _b, _c, _d, _e;
             if (TARGET_TRANSPARENCY !== null && !(TARGET_TRANSPARENCY < 0) && !(TARGET_TRANSPARENCY > Matterer.MaxTransparency.valueOf())) {
                 try {
-                    const ScratchVM = (_b = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) !== null && _b !== void 0 ? _b : null;
+                    const ScratchVM = (_b = this.scratch.vm) !== null && _b !== void 0 ? _b : null;
                     if (ScratchVM === null || ScratchVM === undefined) {
                         throw new Error("ScratchVM is unavailable.");
                     }
-                    const CurrentSprite = ((_d = (_c = ScratchVM.runtime.sequencer) === null || _c === void 0 ? void 0 : _c.activeThread) === null || _d === void 0 ? void 0 : _d.target) || null;
+                    const CurrentSprite = (_e = (_d = (_c = ScratchVM.runtime.sequencer) === null || _c === void 0 ? void 0 : _c.activeThread) === null || _d === void 0 ? void 0 : _d.target) !== null && _e !== void 0 ? _e : null;
                     const InitialTransparency = (CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.effects.ghost.valueOf()) || 0;
                     const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * Number(ScratchVM.runtime.frameLoop.framerate.valueOf()));
                     const TransparencyStepsSize = Math.abs((TARGET_TRANSPARENCY - InitialTransparency) / TransparencySteps);

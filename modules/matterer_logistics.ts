@@ -1,9 +1,10 @@
 const ValidScratchTypeDefinitions: Readonly<string[]> = ['string', 'number', 'boolean', 'object'];
 
 export class Matterer {
-    static waitOneFrame = (): Promise<void> => 
-    new Promise(resolve => requestAnimationFrame(() => resolve()));
+    static waitOneFrame = (): Promise<void> => new Promise(resolve => requestAnimationFrame(() => resolve()));
     static MaxTransparency: Readonly<number> = 100;
+
+    constructor(private scratch: typeof Scratch) {}
 
     public ValidateInputType({ VALUE, TYPE_DEFINITION } : { VALUE: string, TYPE_DEFINITION: string }): boolean {
         const type = TYPE_DEFINITION.toLowerCase();
@@ -72,13 +73,14 @@ export class Matterer {
 
         if (TARGET_TRANSPARENCY !== null && !(TARGET_TRANSPARENCY < 0) && !(TARGET_TRANSPARENCY > Matterer.MaxTransparency.valueOf())) {
             try {
-                const ScratchVM = Scratch?.vm ?? null;
+                const ScratchVM = this.scratch.vm ?? null;
 
                 if (ScratchVM === null || ScratchVM === undefined) {
                     throw new Error("ScratchVM is unavailable.");
                 }
 
-                const CurrentSprite = ScratchVM.runtime.sequencer?.activeThread?.target || null;
+                const CurrentSprite = ScratchVM.runtime.sequencer?.activeThread?.target ?? null;   
+
                 const InitialTransparency = CurrentSprite?.effects.ghost.valueOf() || 0;
                 const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * Number(ScratchVM.runtime.frameLoop.framerate.valueOf()));
                 const TransparencyStepsSize = Math.abs((TARGET_TRANSPARENCY - InitialTransparency) / TransparencySteps);

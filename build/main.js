@@ -85,4 +85,4 @@ class MattererDefinitions extends Matterer {
         };
     }
 }
-Scratch.extensions.register(new MattererDefinitions());
+Scratch.extensions.register(new MattererDefinitions(Scratch));

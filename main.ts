@@ -94,4 +94,4 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
     }
 }
 
-Scratch.extensions.register(new MattererDefinitions());
+Scratch.extensions.register(new MattererDefinitions(Scratch));
