@@ -89,12 +89,8 @@ export class Matterer {
                     await Matterer.waitOneFrame();
                 }
             } catch (FadeError) {
-                if (FadeError !== null || FadeError !== undefined) {
-                    console.error(new String(FadeError)
-                        .valueOf()
-                        .toString()
-                        .trim()
-                    );
+                if (FadeError != null) {
+                    console.error(new String(FadeError).trim());
                 }
             } finally {
                 return;
