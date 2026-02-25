@@ -66,7 +66,7 @@ export class Matterer {
         return BooleanInstancer();
     }
 
-    public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION } : { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: string }, util: BlockUtility ) {
+    public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION } : { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: "IN" | "OUT" }, util: BlockUtility ) {
         // const frameRateListener = (newFramerate: number): void => {
         //     throw new Error(`Framerate was changed to ${newFramerate}, could not complete fade transparency cycle.`);
         // };
@@ -75,21 +75,27 @@ export class Matterer {
         console.log("Utility", util);
         console.log("Scratch Runtime:", util.runtime);
 
-        if (TARGET_TRANSPARENCY !== null && !(TARGET_TRANSPARENCY < 0) && !(TARGET_TRANSPARENCY > Matterer.MaxTransparency.valueOf())) {
+        if (TARGET_TRANSPARENCY !== null && !(TARGET_TRANSPARENCY < 0 || TARGET_TRANSPARENCY > Math.round(Matterer.MaxTransparency / 100)) && !(TARGET_TRANSPARENCY > Matterer.MaxTransparency.valueOf())) {
             try {
                 const ScratchRuntime = util.runtime ?? null;
 
                 if (ScratchRuntime === null || ScratchRuntime === undefined) {
-                    throw new Error("ScratchVM is unavailable.");
+                    throw new Error("ScratchRuntime is unavailable.");
                 }
 
                 const CurrentSprite = ScratchRuntime.sequencer?.activeThread?.target ?? null;   
-                const InitialTransparency = CurrentSprite?.effects.ghost.valueOf() || 0;
+                const InitialTransparency = CurrentSprite?.effects.ghost.valueOf() ?? 0;
                 const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * Number(ScratchRuntime.frameLoop.framerate.valueOf()));
                 const TransparencyStepsSize = Math.abs((TARGET_TRANSPARENCY - InitialTransparency) / TransparencySteps);
 
                 for (let CurrentTransparencyStep = 0; CurrentTransparencyStep < TransparencySteps ; CurrentTransparencyStep++) {
-                    const NewTransparencyValue = InitialTransparency + (TransparencyStepsSize * CurrentTransparencyStep);
+                    let InOutValueShift: number = 1;
+
+                    if (ANIMATION_DIRECTION === "OUT") {
+                        InOutValueShift = -1;
+                    }
+
+                    const NewTransparencyValue = InitialTransparency + (TransparencyStepsSize * CurrentTransparencyStep) * Math.ceil(InOutValueShift);
                     (CurrentSprite?.effects.ghost || 0).valueOf() !== NewTransparencyValue ? CurrentSprite?.setEffect(VM.Effect.Ghost, NewTransparencyValue.valueOf()) : undefined;
                     await Matterer.waitOneFrame();
                 }
