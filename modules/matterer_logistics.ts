@@ -72,7 +72,7 @@ export class Matterer {
 
         if (TARGET_TRANSPARENCY !== null && !(TARGET_TRANSPARENCY < 0) && !(TARGET_TRANSPARENCY > Matterer.MaxTransparency.valueOf())) {
             try {
-                const ScratchVM = Scratch?.vm || Scratch.vm || null // Scratch VirtualMachine Enginez
+                const ScratchVM = ((Scratch && Scratch.vm) ?? Scratch?.vm) || null // Scratch VirtualMachine Engine
 
                 const CurrentSprite = ScratchVM.runtime.sequencer?.activeThread?.target || null;
                 const InitialTransparency = CurrentSprite?.effects.ghost.valueOf() || 0;

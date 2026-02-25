@@ -51,11 +51,11 @@ export class Matterer {
     }
     FadeTransparency(_a) {
         return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION }) {
-            var _b, _c;
+            var _b, _c, _d;
             if (TARGET_TRANSPARENCY !== null && !(TARGET_TRANSPARENCY < 0) && !(TARGET_TRANSPARENCY > Matterer.MaxTransparency.valueOf())) {
                 try {
-                    const ScratchVM = (Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) || Scratch.vm || null;
-                    const CurrentSprite = ((_c = (_b = ScratchVM.runtime.sequencer) === null || _b === void 0 ? void 0 : _b.activeThread) === null || _c === void 0 ? void 0 : _c.target) || null;
+                    const ScratchVM = ((_b = (Scratch && Scratch.vm)) !== null && _b !== void 0 ? _b : Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) || null;
+                    const CurrentSprite = ((_d = (_c = ScratchVM.runtime.sequencer) === null || _c === void 0 ? void 0 : _c.activeThread) === null || _d === void 0 ? void 0 : _d.target) || null;
                     const InitialTransparency = (CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.effects.ghost.valueOf()) || 0;
                     const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * Number(ScratchVM.runtime.frameLoop.framerate.valueOf()));
                     const TransparencyStepsSize = Math.abs((TARGET_TRANSPARENCY - InitialTransparency) / TransparencySteps);
