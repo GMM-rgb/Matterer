@@ -90,7 +90,7 @@ export class Matterer {
                     }
                 }
                 finally {
-                    return;
+                    return void null;
                 }
             }
         });

@@ -115,7 +115,7 @@ export class Matterer {
                     console.error(new String(FadeError).trim());
                 }
             } finally {
-                return;
+                return void null;
             }
         }
     }
