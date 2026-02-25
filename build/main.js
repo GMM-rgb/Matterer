@@ -94,10 +94,6 @@ class MattererDefinitions extends matterer_logistics_js_1.Matterer {
                     items: new Array('TRUE', 'FALSE'),
                     acceptReporters: true,
                 },
-                AnimatingPropertyChoiceSet: {
-                    items: new Array('Transparency', 'PositionY', 'PositionX', 'Size'),
-                    acceptReporters: true,
-                },
                 AnimationDirectionChoice: {
                     items: new Array('IN', 'OUT'),
                     acceptReporters: true,

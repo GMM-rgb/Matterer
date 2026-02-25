@@ -103,10 +103,10 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                     acceptReporters: true,
                 },
                 // FadeTransparency Block; Parameter Input Menus
-                AnimatingPropertyChoiceSet: {
-                    items: new Array('Transparency', 'PositionY', 'PositionX', 'Size'),
-                    acceptReporters: true,
-                },
+                // AnimatingPropertyChoiceSet: {
+                //     items: new Array('Transparency', 'PositionY', 'PositionX', 'Size'),
+                //     acceptReporters: true,
+                // },
                 AnimationDirectionChoice: {
                     items: new Array('IN', 'OUT'),
                     acceptReporters: true,
