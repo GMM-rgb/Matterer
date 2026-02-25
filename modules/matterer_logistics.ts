@@ -1,6 +1,6 @@
-const ValidScratchTypeDefinitions: Readonly<string[]> = ['string', 'number', 'boolean', 'object'];
-
 type AnimationStyles = "linear" | "easeIn" | "easeOut" | "easeInOut" | "bounce";
+
+const ValidScratchTypeDefinitions: Readonly<string[]> = ['string', 'number', 'boolean', 'object'];
 
 export class Matterer {
     static waitOneFrame = (): Promise<void> => new Promise(resolve => requestAnimationFrame(() => resolve()));
