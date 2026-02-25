@@ -83,18 +83,20 @@ export class Matterer {
 
                 const CalculatedGhostValueTarget = TARGET_TRANSPARENCY * 100;
                 const InitialTransparency = CurrentSprite?.effects.ghost ?? 0;
-                const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * ScratchRuntime.frameLoop.framerate);
-                const TransparencyStepsSize = Math.abs((CalculatedGhostValueTarget - InitialTransparency) / TransparencySteps);
 
-                for (let CurrentTransparencyStep = 0; CurrentTransparencyStep < TransparencySteps; CurrentTransparencyStep++) {
-                    const InOutValueShift = ANIMATION_DIRECTION === "OUT" ? -1 : 1;
-                    const NewTransparencyValue = InitialTransparency + (TransparencyStepsSize * CurrentTransparencyStep) * InOutValueShift;
-                    CurrentSprite?.setEffect(VM.Effect.Ghost, NewTransparencyValue);
+                const StartValue = InitialTransparency;
+                const EndValue = ANIMATION_DIRECTION === "OUT" ? 0 : CalculatedGhostValueTarget;
+                
+                const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * ScratchRuntime.frameLoop.framerate);
+                const TransparencyStepSize = (EndValue - StartValue) / TransparencySteps;
+
+                for (let step = 0; step < TransparencySteps; step++) {
+                    CurrentSprite?.setEffect(VM.Effect.Ghost, StartValue + TransparencyStepSize * step);
                     await Matterer.waitOneFrame();
                 }
 
                 // guarantees the sprite always land exactly on the inputted target
-                CurrentSprite?.setEffect(VM.Effect.Ghost, ANIMATION_DIRECTION === "OUT" ? 0 : TARGET_TRANSPARENCY);
+                CurrentSprite?.setEffect(VM.Effect.Ghost, EndValue);
             } catch (FadeError) {
                 if (FadeError != null) {
                     console.error(new String(FadeError).trim());

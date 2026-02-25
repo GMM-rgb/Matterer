@@ -65,15 +65,15 @@ export class Matterer {
                     const CurrentSprite = (_f = ((_e = (_d = (_c = ScratchRuntime.sequencer) === null || _c === void 0 ? void 0 : _c.activeThread) === null || _d === void 0 ? void 0 : _d.target) !== null && _e !== void 0 ? _e : util.target)) !== null && _f !== void 0 ? _f : null;
                     const CalculatedGhostValueTarget = TARGET_TRANSPARENCY * 100;
                     const InitialTransparency = (_g = CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.effects.ghost) !== null && _g !== void 0 ? _g : 0;
+                    const StartValue = InitialTransparency;
+                    const EndValue = ANIMATION_DIRECTION === "OUT" ? 0 : CalculatedGhostValueTarget;
                     const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * ScratchRuntime.frameLoop.framerate);
-                    const TransparencyStepsSize = Math.abs((CalculatedGhostValueTarget - InitialTransparency) / TransparencySteps);
-                    for (let CurrentTransparencyStep = 0; CurrentTransparencyStep < TransparencySteps; CurrentTransparencyStep++) {
-                        const InOutValueShift = ANIMATION_DIRECTION === "OUT" ? -1 : 1;
-                        const NewTransparencyValue = InitialTransparency + (TransparencyStepsSize * CurrentTransparencyStep) * InOutValueShift;
-                        CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.setEffect("ghost", NewTransparencyValue);
+                    const TransparencyStepSize = (EndValue - StartValue) / TransparencySteps;
+                    for (let step = 0; step < TransparencySteps; step++) {
+                        CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.setEffect("ghost", StartValue + TransparencyStepSize * step);
                         yield Matterer.waitOneFrame();
                     }
-                    CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.setEffect("ghost", ANIMATION_DIRECTION === "OUT" ? 0 : TARGET_TRANSPARENCY);
+                    CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.setEffect("ghost", EndValue);
                 }
                 catch (FadeError) {
                     if (FadeError != null) {
