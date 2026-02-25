@@ -2,6 +2,7 @@
 /// <reference path="C:/nvm4w/nodejs/node_modules/@turbowarp/types/types/scratch-render.d.ts" />
 /// <reference path="C:/nvm4w/nodejs/node_modules/@turbowarp/types/types/scratch-vm.d.ts" />
 /// <reference path="C:/nvm4w/nodejs/node_modules/@turbowarp/types/types/events.d.ts" />
+/// <reference path="C:/nvm4w/nodejs/node_modules/@turbowarp/types/types/scratch-block-utility.d.ts" />
 
 import { Matterer } from "./modules/matterer_logistics.js";
 

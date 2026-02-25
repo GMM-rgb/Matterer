@@ -56,9 +56,9 @@ export class Matterer {
     FadeTransparency(_a, util_1) {
         return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION }, util) {
             var _b, _c, _d, _e;
-            console.log("Utility", util);
             console.log("Scratch:", Scratch);
-            console.log("Scratch.vm:", Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm);
+            console.log("Utility", util);
+            console.log("Scratch Runtime:", util.runtime);
             if (TARGET_TRANSPARENCY !== null && !(TARGET_TRANSPARENCY < 0) && !(TARGET_TRANSPARENCY > Matterer.MaxTransparency.valueOf())) {
                 try {
                     const ScratchVM = (_b = this.scratch.vm) !== null && _b !== void 0 ? _b : null;
