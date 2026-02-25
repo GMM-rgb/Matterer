@@ -55,18 +55,15 @@ export class Matterer {
     }
     FadeTransparency(_a, util_1) {
         return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION }, util) {
-            var _b, _c, _d, _e, _f;
-            console.log("Scratch:", Scratch);
-            console.log("Utility", util);
-            console.log("Scratch Runtime:", util.runtime);
-            if (TARGET_TRANSPARENCY !== null && !(TARGET_TRANSPARENCY < 0 || TARGET_TRANSPARENCY > Math.round(Matterer.MaxTransparency / 100)) && !(TARGET_TRANSPARENCY > Matterer.MaxTransparency.valueOf())) {
+            var _b, _c, _d, _e, _f, _g;
+            if (TARGET_TRANSPARENCY !== null && TARGET_TRANSPARENCY >= 0 && TARGET_TRANSPARENCY <= Matterer.MaxTransparency) {
                 try {
                     const ScratchRuntime = (_b = util.runtime) !== null && _b !== void 0 ? _b : null;
                     if (ScratchRuntime === null || ScratchRuntime === undefined) {
                         throw new Error("ScratchRuntime is unavailable.");
                     }
-                    const CurrentSprite = (_e = (_d = (_c = ScratchRuntime.sequencer) === null || _c === void 0 ? void 0 : _c.activeThread) === null || _d === void 0 ? void 0 : _d.target) !== null && _e !== void 0 ? _e : null;
-                    const InitialTransparency = (_f = CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.effects.ghost.valueOf()) !== null && _f !== void 0 ? _f : 0;
+                    const CurrentSprite = (_f = ((_e = (_d = (_c = ScratchRuntime.sequencer) === null || _c === void 0 ? void 0 : _c.activeThread) === null || _d === void 0 ? void 0 : _d.target) !== null && _e !== void 0 ? _e : util.target)) !== null && _f !== void 0 ? _f : null;
+                    const InitialTransparency = (_g = CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.effects.ghost.valueOf()) !== null && _g !== void 0 ? _g : 0;
                     const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * Number(ScratchRuntime.frameLoop.framerate.valueOf()));
                     const TransparencyStepsSize = Math.abs((TARGET_TRANSPARENCY - InitialTransparency) / TransparencySteps);
                     for (let CurrentTransparencyStep = 0; CurrentTransparencyStep < TransparencySteps; CurrentTransparencyStep++) {
