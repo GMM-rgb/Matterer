@@ -10,9 +10,18 @@ git clone https://github.com/Gandi-IDE/gandi-types C:/nvm4w/nodejs/node_modules/
 ```bash
 ln -s "../@turbowarp/types/types" turbowarp-types
 ```
-```powershell
+#### *`Win32`* Machine
+```cmd
 mklink /D turbowarp-types "C:/nvm4w/nodejs/node_modules/@turbowarp/types/types"
 ```
+```powershell
+New-Item -ItemType SymbolicLink -Path "turbowarp-types" -Target "C:/nvm4w/nodejs/node_modules/@turbowarp/types/types"
+```
+- As an **Administrator**:
+```powershell
+Start-Process cmd -ArgumentList '/c mklink /D D:\Matterer\turbowarp-types C:\nvm4w\nodejs\node_modules\@turbowarp\types\types' -Verb RunAs
+```
+---
 # Updating The Gandi IDE Extension via jsDelivr
 ## Steps to push an update
 
