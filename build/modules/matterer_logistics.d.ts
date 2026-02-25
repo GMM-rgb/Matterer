@@ -1,5 +1,6 @@
 type AnimationStyles = "linear" | "easeIn" | "easeOut" | "easeInOut" | "bounce";
-export declare class Matterer {
+import { ResetDefaultValues } from "./button_palette_functionality/reset.js";
+export declare class Matterer extends ResetDefaultValues {
     private scratch;
     static waitOneFrame: () => Promise<void>;
     static MaxTransparency: Readonly<number>;
@@ -11,6 +12,7 @@ export declare class Matterer {
     NewBoolean({ BOOL_VALUE }: {
         BOOL_VALUE: string;
     }): boolean;
+    FetchVisibilityState(util: BlockUtility): boolean;
     FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE }: {
         TARGET_TRANSPARENCY: number;
         ANIMATION_DIRECTION: "IN" | "OUT";

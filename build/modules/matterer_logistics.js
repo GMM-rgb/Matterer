@@ -11,10 +11,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Matterer = void 0;
 const ValidScratchTypeDefinitions = ['string', 'number', 'boolean', 'object'];
-class Matterer {
+const reset_js_1 = require("./button_palette_functionality/reset.js");
+class Matterer extends reset_js_1.ResetDefaultValues {
     constructor(scratch) {
+        super();
         this.scratch = scratch;
-        undefined;
     }
     ValidateInputType({ VALUE, TYPE_DEFINITION }) {
         const type = TYPE_DEFINITION.toLowerCase();
@@ -55,6 +56,11 @@ class Matterer {
             return ConvertRequestedValueToString() === 'true';
         }
         return BooleanInstancer();
+    }
+    FetchVisibilityState(util) {
+        var _a;
+        const CurrentSpriteVisibilityFetch = (_a = util.target) !== null && _a !== void 0 ? _a : null;
+        return new Boolean(CurrentSpriteVisibilityFetch.visible).valueOf();
     }
     FadeTransparency(_a, util_1) {
         return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE }, util) {

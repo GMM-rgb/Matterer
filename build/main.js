@@ -12,7 +12,7 @@ class MattererDefinitions extends matterer_logistics_js_1.Matterer {
             blocks: [
                 {
                     blockType: Scratch.BlockType.BUTTON,
-                    func: String().trim(),
+                    func: new String(this.resetValues.name).valueOf().trim(),
                     text: "🔄️ Reset Default Values"
                 },
                 "---",
@@ -74,6 +74,16 @@ class MattererDefinitions extends matterer_logistics_js_1.Matterer {
                         },
                     },
                 },
+                "---",
+                {
+                    blockType: Scratch.BlockType.LABEL,
+                    text: "Visual Control",
+                },
+                {
+                    blockType: Scratch.BlockType.REPORTER,
+                    opcode: this.FetchVisibilityState.name.valueOf(),
+                    text: "sprite currently visible?",
+                }
             ],
             menus: {
                 typeDefinitionMenu: {
@@ -82,6 +92,10 @@ class MattererDefinitions extends matterer_logistics_js_1.Matterer {
                 },
                 BooleanPickerMenu: {
                     items: new Array('TRUE', 'FALSE'),
+                    acceptReporters: true,
+                },
+                AnimatingPropertyChoiceSet: {
+                    items: new Array('Transparency', 'PositionY', 'PositionX', 'Size'),
                     acceptReporters: true,
                 },
                 AnimationDirectionChoice: {

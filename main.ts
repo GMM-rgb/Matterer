@@ -56,13 +56,14 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                 {
                     blockType: Scratch.BlockType.COMMAND,
                     opcode: (this.FadeTransparency as Function).name.valueOf(),
-                    text: "animate [ANIMATING_PROPERTY] to [TARGET_TRANSPARENCY] in direction [ANIMATION_DIRECTION] with animation style [ANIMATION_STYLE]",
+                    // text: "animate [ANIMATING_PROPERTY] to [TARGET_TRANSPARENCY] in direction [ANIMATION_DIRECTION] with animation style [ANIMATION_STYLE]",
+                    text: "animate transparency to [TARGET_TRANSPARENCY] in direction [ANIMATION_DIRECTION] with animation style [ANIMATION_STYLE]",
                     arguments: {
-                        ANIMATING_PROPERTY: {
-                            type: Scratch.ArgumentType.STRING,
-                            menu: "AnimatingPropertyChoiceSet",
-                            defaultValue: "Transparency",
-                        },
+                        // ANIMATING_PROPERTY: {
+                        //     type: Scratch.ArgumentType.STRING,
+                        //     menu: "AnimatingPropertyChoiceSet",
+                        //     defaultValue: "Transparency",
+                        // },
                         TARGET_TRANSPARENCY: {
                             type: Scratch.ArgumentType.NUMBER,
                             defaultValue: 1,
@@ -87,7 +88,7 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                 {
                     blockType: Scratch.BlockType.REPORTER,
                     opcode: (this.FetchVisibilityState as Function).name.valueOf(),
-                    text: "currently visible?",
+                    text: "sprite currently visible?",
                 }
             ],
             menus: {
