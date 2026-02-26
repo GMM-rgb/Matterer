@@ -54,8 +54,11 @@ class Matterer {
     }
     FetchVisibilityState(util) {
         var _a, _b, _c, _d;
-        const CurrentSpriteVisibilityFetch = (_d = ((_c = (_b = (_a = util.runtime.sequencer) === null || _a === void 0 ? void 0 : _a.activeThread) === null || _b === void 0 ? void 0 : _b.target) !== null && _c !== void 0 ? _c : util.target)) !== null && _d !== void 0 ? _d : null;
-        return CurrentSpriteVisibilityFetch.visible.valueOf();
+        const Runtime = (_a = util === null || util === void 0 ? void 0 : util.runtime) !== null && _a !== void 0 ? _a : null;
+        const CurrentSpriteVisibilityFetch = (_c = (_b = Runtime.sequencer.activeThread) === null || _b === void 0 ? void 0 : _b.target) !== null && _c !== void 0 ? _c : null;
+        console.debug(`Visibility Fetch Runtime:\t${Runtime}`);
+        console.debug(`Visibility Fetch Sprite:\t${CurrentSpriteVisibilityFetch !== null && CurrentSpriteVisibilityFetch !== void 0 ? CurrentSpriteVisibilityFetch : new String(null).valueOf()}`);
+        return (_d = CurrentSpriteVisibilityFetch === null || CurrentSpriteVisibilityFetch === void 0 ? void 0 : CurrentSpriteVisibilityFetch.visible.valueOf()) !== null && _d !== void 0 ? _d : false;
     }
     FadeTransparency(_a, util_1) {
         return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE }, util) {
@@ -98,6 +101,8 @@ class Matterer {
                 }
             }
         });
+    }
+    CheckIsAnimatingProperty() {
     }
 }
 Matterer.ValueTypes = [String, Boolean];

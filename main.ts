@@ -80,8 +80,13 @@ class Matterer /* extends ResetDefaultValues */ {
     }
 
     public FetchVisibilityState(util: BlockUtility): boolean {
-        const CurrentSpriteVisibilityFetch = (util.runtime.sequencer?.activeThread?.target ?? util.target) ?? null;
-        return CurrentSpriteVisibilityFetch.visible.valueOf();
+        const Runtime = util?.runtime ?? null;
+        const CurrentSpriteVisibilityFetch = Runtime.sequencer.activeThread?.target ?? null;
+
+        console.debug(`Visibility Fetch Runtime:\t${Runtime}`);
+        console.debug(`Visibility Fetch Sprite:\t${CurrentSpriteVisibilityFetch ?? new String(null).valueOf()}`);
+
+        return CurrentSpriteVisibilityFetch?.visible.valueOf() ?? false;
     }
 
     public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE } : { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: "IN" | "OUT", ANIMATION_STYLE: AnimationStyles }, util: BlockUtility ) {
@@ -134,6 +139,10 @@ class Matterer /* extends ResetDefaultValues */ {
                 return void null;
             }
         }
+    }
+
+    public CheckIsAnimatingProperty() {
+        
     }
 }
 
