@@ -79,14 +79,17 @@ class Matterer /* extends ResetDefaultValues */ {
         return BooleanInstancer();
     }
 
-    public FetchVisibilityState({}): boolean {
-        const Runtime = this.scratch.vm.runtime ?? null;
-        const CurrentSpriteVisibilityFetch = Runtime?.sequencer?.activeThread?.target ?? null;
+    public FetchVisibilityState({}: {}, util: BlockUtility): boolean {
+        const sprite = util?.target 
+            ?? Scratch.vm.runtime.sequencer.activeThread?.target 
+            ?? null;
 
-        console.debug(`Visibility Fetch Runtime:\t${Runtime}`);
-        console.debug(`Visibility Fetch Sprite:\t${CurrentSpriteVisibilityFetch ?? new String(null).valueOf()}`);
+        if (sprite === null) {
+            console.warn("Sprite visibility defaulting to false!");
+            return false;
+        }
 
-        return CurrentSpriteVisibilityFetch?.visible.valueOf() ?? (false && console.warn(`Sprite visibility defaulting to false!`));
+        return sprite.visible.valueOf();
     }
 
     public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE } : { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: "IN" | "OUT", ANIMATION_STYLE: AnimationStyles }, /* util: BlockUtility */ ) {

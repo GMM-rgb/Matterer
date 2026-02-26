@@ -52,13 +52,14 @@ class Matterer {
         }
         return BooleanInstancer();
     }
-    FetchVisibilityState({}) {
-        var _a, _b, _c, _d, _e;
-        const Runtime = (_a = this.scratch.vm.runtime) !== null && _a !== void 0 ? _a : null;
-        const CurrentSpriteVisibilityFetch = (_d = (_c = (_b = Runtime === null || Runtime === void 0 ? void 0 : Runtime.sequencer) === null || _b === void 0 ? void 0 : _b.activeThread) === null || _c === void 0 ? void 0 : _c.target) !== null && _d !== void 0 ? _d : null;
-        console.debug(`Visibility Fetch Runtime:\t${Runtime}`);
-        console.debug(`Visibility Fetch Sprite:\t${CurrentSpriteVisibilityFetch !== null && CurrentSpriteVisibilityFetch !== void 0 ? CurrentSpriteVisibilityFetch : new String(null).valueOf()}`);
-        return (_e = CurrentSpriteVisibilityFetch === null || CurrentSpriteVisibilityFetch === void 0 ? void 0 : CurrentSpriteVisibilityFetch.visible.valueOf()) !== null && _e !== void 0 ? _e : (false && console.warn(`Sprite visibility defaulting to false!`));
+    FetchVisibilityState({}, util) {
+        var _a, _b, _c;
+        const sprite = (_c = (_a = util === null || util === void 0 ? void 0 : util.target) !== null && _a !== void 0 ? _a : (_b = Scratch.vm.runtime.sequencer.activeThread) === null || _b === void 0 ? void 0 : _b.target) !== null && _c !== void 0 ? _c : null;
+        if (sprite === null) {
+            console.warn("Sprite visibility defaulting to false!");
+            return false;
+        }
+        return sprite.visible.valueOf();
     }
     FadeTransparency(_a) {
         return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE }) {
