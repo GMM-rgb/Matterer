@@ -57,7 +57,7 @@ export class Matterer extends ResetDefaultValues {
     FetchVisibilityState(util) {
         var _a;
         const CurrentSpriteVisibilityFetch = (_a = util.target) !== null && _a !== void 0 ? _a : null;
-        return new Boolean(CurrentSpriteVisibilityFetch.visible).valueOf();
+        return CurrentSpriteVisibilityFetch.visible.valueOf();
     }
     FadeTransparency(_a, util_1) {
         return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE }, util) {
@@ -102,5 +102,6 @@ export class Matterer extends ResetDefaultValues {
         });
     }
 }
+Matterer.ValueTypes = [String, Boolean];
 Matterer.waitOneFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
 Matterer.MaxTransparency = 100;

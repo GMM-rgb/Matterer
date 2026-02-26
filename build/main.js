@@ -78,9 +78,9 @@ class MattererDefinitions extends Matterer {
                     text: "Visual Control",
                 },
                 {
-                    blockType: Scratch.BlockType.REPORTER,
+                    blockType: Scratch.BlockType.BOOLEAN,
                     opcode: this.FetchVisibilityState.name.valueOf(),
-                    text: "sprite currently visible?",
+                    text: "sprite currently visible",
                     arguments: {},
                 },
             ],
@@ -92,6 +92,10 @@ class MattererDefinitions extends Matterer {
                 BooleanPickerMenu: {
                     items: new Array('TRUE', 'FALSE'),
                     acceptReporters: true,
+                },
+                ValueTypeSwitchMenu: {
+                    items: new Array('reporter', 'bool'),
+                    acceptReporters: false,
                 },
                 AnimationDirectionChoice: {
                     items: new Array('IN', 'OUT'),

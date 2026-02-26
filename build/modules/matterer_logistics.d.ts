@@ -2,6 +2,7 @@ type AnimationStyles = "linear" | "easeIn" | "easeOut" | "easeInOut" | "bounce";
 import { ResetDefaultValues } from "./button_palette_functionality/reset.js";
 export declare class Matterer extends ResetDefaultValues {
     private scratch;
+    static ValueTypes: (StringConstructor | BooleanConstructor)[];
     static waitOneFrame: () => Promise<void>;
     static MaxTransparency: Readonly<number>;
     constructor(scratch: typeof Scratch);

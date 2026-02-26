@@ -71,11 +71,9 @@ export class Matterer extends ResetDefaultValues {
         return BooleanInstancer();
     }
 
-    public FetchVisibilityState({ VALUE_TYPE } : { VALUE_TYPE: 'reporter' | 'bool' }, util: BlockUtility): string|boolean {
-        const RequestedValueTypeFormated = VALUE_TYPE === "reporter" ? 'String' : 'Boolean';
-        // 
+    public FetchVisibilityState(util: BlockUtility): boolean {
         const CurrentSpriteVisibilityFetch = util.target ?? null;
-        return new Matterer.ValueTypes[RequestedValueTypeFormated](CurrentSpriteVisibilityFetch.visible).valueOf();
+        return CurrentSpriteVisibilityFetch.visible.valueOf();
     }
 
     public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE } : { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: "IN" | "OUT", ANIMATION_STYLE: AnimationStyles }, util: BlockUtility ) {
