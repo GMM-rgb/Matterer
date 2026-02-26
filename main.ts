@@ -167,7 +167,7 @@ class Matterer /* extends ResetDefaultValues */ {
     }
 }
 //
-//
+// Block Class Definitions
 //
 class MattererDefinitions extends Matterer implements Scratch.Extension {
     getInfo(): Scratch.Info {
