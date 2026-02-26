@@ -1,21 +1,22 @@
 {
-  "buildOptions": {
-    "verbose": true,
-    "traceResolution": true,
-
-  },
   "compilerOptions": {
     "pretty": true,
-    "listFiles": true,
-    "alwaysStrict": true,
-    "preserveConstEnums": true,
     "removeComments": true,
+    "declaration": false,
     "diagnostics": true,
-    "declaration": true,
+    "skipLibCheck": true,
     "outDir": "./build",
     "moduleResolution": "bundler",
+    "module": "ESNext",
     "lib": ["ES2015", "DOM"],
-    "module": "esnext",
-    "target": "es6",
-   }
+    "target": "ES6"
+  },
+  "include": [
+    "main.ts",
+    "turbowarp-types/**/*.d.ts"
+  ],
+  "exclude": [
+    "build",
+    "turbowarp-types/scratch-gui.d.ts"
+  ]
 }

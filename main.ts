@@ -3,7 +3,7 @@
 type AnimationStyles = "linear" | "easeIn" | "easeOut" | "easeInOut" | "bounce";
 const ValidScratchTypeDefinitions: Readonly<string[]> = ['string', 'number', 'boolean', 'object'];
 
-export class Matterer /* extends ResetDefaultValues */ {
+class Matterer /* extends ResetDefaultValues */ {
     static ValueTypes = [String, Boolean];
     static waitOneFrame = (): Promise<void> => new Promise(resolve => requestAnimationFrame(() => resolve()));
     static MaxTransparency: Readonly<number> = 100;

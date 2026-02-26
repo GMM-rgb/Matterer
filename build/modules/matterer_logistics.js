@@ -1,3 +1,4 @@
+"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -7,9 +8,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Matterer = void 0;
 const ValidScratchTypeDefinitions = ['string', 'number', 'boolean', 'object'];
-import { ResetDefaultValues } from "./button_palette_functionality/reset.js";
-export class Matterer extends ResetDefaultValues {
+const reset_js_1 = require("./button_palette_functionality/reset.js");
+class Matterer extends reset_js_1.ResetDefaultValues {
     constructor() {
         super();
         this.scratch = Scratch;
@@ -102,6 +105,7 @@ export class Matterer extends ResetDefaultValues {
         });
     }
 }
+exports.Matterer = Matterer;
 Matterer.ValueTypes = [String, Boolean];
 Matterer.waitOneFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
 Matterer.MaxTransparency = 100;

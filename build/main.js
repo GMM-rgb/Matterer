@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 const ValidScratchTypeDefinitions = ['string', 'number', 'boolean', 'object'];
-export class Matterer {
+class Matterer {
     constructor() {
         this.scratch = Scratch;
     }
