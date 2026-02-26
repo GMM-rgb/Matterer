@@ -10,9 +10,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 const ValidScratchTypeDefinitions = ['string', 'number', 'boolean', 'object'];
 import { ResetDefaultValues } from "./button_palette_functionality/reset.js";
 export class Matterer extends ResetDefaultValues {
-    constructor(scratch) {
+    constructor() {
         super();
-        this.scratch = scratch;
+        this.scratch = Scratch;
     }
     ValidateInputType({ VALUE, TYPE_DEFINITION }) {
         const type = TYPE_DEFINITION.toLowerCase();

@@ -9,7 +9,12 @@ export class Matterer extends ResetDefaultValues {
     static waitOneFrame = (): Promise<void> => new Promise(resolve => requestAnimationFrame(() => resolve()));
     static MaxTransparency: Readonly<number> = 100;
 
-    constructor(private scratch: typeof Scratch) { super(); }
+    scratch: typeof Scratch;
+
+    constructor() {
+        super();
+        this.scratch = Scratch;
+    }
 
     public ValidateInputType({ VALUE, TYPE_DEFINITION } : { VALUE: string, TYPE_DEFINITION: string }): boolean {
         const type = TYPE_DEFINITION.toLowerCase();

@@ -6,6 +6,7 @@
   },
   "compilerOptions": {
     "pretty": true,
+    "listFiles": true,
     "alwaysStrict": true,
     "preserveConstEnums": true,
     "removeComments": true,
