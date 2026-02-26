@@ -151,15 +151,18 @@ class Matterer /* extends ResetDefaultValues */ {
         return true;
     }
 
-    public CheckIsAnimatingProperty({ REQUESTED_ANIMATING_STATE_TYPE } : { REQUESTED_ANIMATING_STATE_TYPE: "animating" | "not animating" }, ) {
-        if (REQUESTED_ANIMATING_STATE_TYPE != null) {
-            if (REQUESTED_ANIMATING_STATE_TYPE === "animating" || REQUESTED_ANIMATING_STATE_TYPE === "not animating") {
-                // try {
+    public CheckIsAnimatingProperty({ REQUESTED_ANIMATING_STATE_TYPE }: { REQUESTED_ANIMATING_STATE_TYPE: "animating" | "not animating" }, util: BlockUtility): boolean {
+        if (REQUESTED_ANIMATING_STATE_TYPE === null) return false;
 
-                // } catch () {
+        const sprite = this.getActiveSprite(util);
+        if (sprite === null) return false;
 
-                // }
-            }
+        const isAnimating = this.__currentlyAnimating.has(sprite.id);
+
+        if (REQUESTED_ANIMATING_STATE_TYPE === "animating") {
+            return isAnimating;
+        } else {
+            return !isAnimating;
         }
     }
 }
@@ -184,7 +187,7 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                 "---",
                 {
                     blockType: Scratch.BlockType.LABEL,
-                    text: "Boolean Controls",
+                    text: "General Utilities",
                 },
                 {
                     blockType: Scratch.BlockType.BOOLEAN,
@@ -257,7 +260,7 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                             defaultValue: "animating",
                         },
                     },
-                    hideFromPalette: true,
+                    // hideFromPalette: true,
                 },
                 "---",
                 {

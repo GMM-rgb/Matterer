@@ -116,10 +116,18 @@ class Matterer {
     TrackAnimationEndTrigger({}, util) {
         return true;
     }
-    CheckIsAnimatingProperty({ REQUESTED_ANIMATING_STATE_TYPE }) {
-        if (REQUESTED_ANIMATING_STATE_TYPE != null) {
-            if (REQUESTED_ANIMATING_STATE_TYPE === "animating" || REQUESTED_ANIMATING_STATE_TYPE === "not animating") {
-            }
+    CheckIsAnimatingProperty({ REQUESTED_ANIMATING_STATE_TYPE }, util) {
+        if (REQUESTED_ANIMATING_STATE_TYPE === null)
+            return false;
+        const sprite = this.getActiveSprite(util);
+        if (sprite === null)
+            return false;
+        const isAnimating = this.__currentlyAnimating.has(sprite.id);
+        if (REQUESTED_ANIMATING_STATE_TYPE === "animating") {
+            return isAnimating;
+        }
+        else {
+            return !isAnimating;
         }
     }
 }
@@ -138,7 +146,7 @@ class MattererDefinitions extends Matterer {
                 "---",
                 {
                     blockType: Scratch.BlockType.LABEL,
-                    text: "Boolean Controls",
+                    text: "General Utilities",
                 },
                 {
                     blockType: Scratch.BlockType.BOOLEAN,
@@ -205,7 +213,6 @@ class MattererDefinitions extends Matterer {
                             defaultValue: "animating",
                         },
                     },
-                    hideFromPalette: true,
                 },
                 "---",
                 {
