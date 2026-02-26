@@ -333,4 +333,5 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
     }
 }
 
+// Initiallize Scratch VM extension
 Scratch.extensions.register(new MattererDefinitions());
