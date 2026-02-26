@@ -266,7 +266,7 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                 },
                 {
                     blockType: Scratch.BlockType.HAT,
-                    text: "when sprite animation starts",
+                    text: "when animating STARTS",
                     opcode: this.TrackAnimationStartTrigger.name.valueOf(),
                     shouldRestartExistingThreads: false,
                     isEdgeActivated: false,
@@ -274,7 +274,7 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                 },
                 {
                     blockType: Scratch.BlockType.HAT,
-                    text: "when sprite animation ends",
+                    text: "when animating ENDS",
                     opcode: (this.TrackAnimationEndTrigger as Function).name.valueOf(),
                     shouldRestartExistingThreads: false,
                     isEdgeActivated: false,
