@@ -12,9 +12,9 @@ class Matterer {
     constructor() {
         this.scratch = Scratch !== null && Scratch !== void 0 ? Scratch : undefined;
     }
-    getActiveSprite() {
-        var _a, _b, _c, _d;
-        return (_d = (_c = (_b = (_a = Scratch.vm.runtime.sequencer) === null || _a === void 0 ? void 0 : _a.activeThread) === null || _b === void 0 ? void 0 : _b.target) !== null && _c !== void 0 ? _c : Scratch.vm.runtime._editingTarget) !== null && _d !== void 0 ? _d : null;
+    getActiveSprite(util) {
+        var _a, _b, _c, _d, _e;
+        return (_e = (_d = (_a = util === null || util === void 0 ? void 0 : util.target) !== null && _a !== void 0 ? _a : (_c = (_b = Scratch.vm.runtime.sequencer) === null || _b === void 0 ? void 0 : _b.activeThread) === null || _c === void 0 ? void 0 : _c.target) !== null && _d !== void 0 ? _d : Scratch.vm.runtime._editingTarget) !== null && _e !== void 0 ? _e : null;
     }
     ValidateInputType({ VALUE, TYPE_DEFINITION }) {
         const type = TYPE_DEFINITION.toLowerCase();
@@ -56,17 +56,17 @@ class Matterer {
         }
         return BooleanInstancer();
     }
-    FetchVisibilityState({}) {
-        const sprite = this.getActiveSprite();
+    FetchVisibilityState({}, util) {
+        const sprite = this.getActiveSprite(util);
         if (sprite === null) {
             console.warn("Sprite visibility defaulting to false!");
             return false;
         }
         return sprite.visible.valueOf();
     }
-    FadeTransparency(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE }) {
-            var _b, _c, _d, _e, _f, _g, _h;
+    FadeTransparency(_a, util_1) {
+        return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE }, util) {
+            var _b, _c, _d, _e, _f, _g;
             const easings = {
                 linear: (t) => t,
                 easeIn: (t) => t * t,
@@ -76,13 +76,13 @@ class Matterer {
             };
             if (TARGET_TRANSPARENCY !== null && TARGET_TRANSPARENCY >= 0 && TARGET_TRANSPARENCY <= Matterer.MaxTransparency) {
                 try {
-                    const ScratchRuntime = (_d = (_c = (_b = this === null || this === void 0 ? void 0 : this.scratch) === null || _b === void 0 ? void 0 : _b.vm) === null || _c === void 0 ? void 0 : _c.runtime) !== null && _d !== void 0 ? _d : null;
+                    const ScratchRuntime = (_b = util.runtime) !== null && _b !== void 0 ? _b : null;
                     if (ScratchRuntime === null || ScratchRuntime === undefined) {
                         throw new Error("ScratchRuntime is unavailable.");
                     }
-                    const CurrentSprite = (_g = ((_f = (_e = ScratchRuntime.sequencer) === null || _e === void 0 ? void 0 : _e.activeThread) === null || _f === void 0 ? void 0 : _f.target)) !== null && _g !== void 0 ? _g : null;
+                    const CurrentSprite = (_f = ((_e = ((_d = (_c = ScratchRuntime.sequencer) === null || _c === void 0 ? void 0 : _c.activeThread) === null || _d === void 0 ? void 0 : _d.target)) !== null && _e !== void 0 ? _e : util === null || util === void 0 ? void 0 : util.target)) !== null && _f !== void 0 ? _f : null;
                     const CalculatedGhostValueTarget = TARGET_TRANSPARENCY * 100;
-                    const InitialTransparency = (_h = CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.effects.ghost) !== null && _h !== void 0 ? _h : 0;
+                    const InitialTransparency = (_g = CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.effects.ghost) !== null && _g !== void 0 ? _g : 0;
                     const StartValue = InitialTransparency;
                     const EndValue = ANIMATION_DIRECTION === "OUT" ? 0 : CalculatedGhostValueTarget;
                     const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * ScratchRuntime.frameLoop.framerate);

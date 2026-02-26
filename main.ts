@@ -19,10 +19,11 @@ class Matterer /* extends ResetDefaultValues */ {
         this.scratch = Scratch ?? undefined;
     }
 
-    private getActiveSprite() {
-    return Scratch.vm.runtime.sequencer?.activeThread?.target
-        ?? Scratch.vm.runtime._editingTarget
-        ?? null;
+    private getActiveSprite(util?: BlockUtility) {
+        return util?.target
+            ?? Scratch.vm.runtime.sequencer?.activeThread?.target
+            ?? Scratch.vm.runtime._editingTarget
+            ?? null;
     }
     
     public ValidateInputType({ VALUE, TYPE_DEFINITION } : { VALUE: string, TYPE_DEFINITION: string }): boolean {
@@ -85,8 +86,8 @@ class Matterer /* extends ResetDefaultValues */ {
         return BooleanInstancer();
     }
 
-    public FetchVisibilityState({}: {}): boolean {
-        const sprite = this.getActiveSprite();
+    public FetchVisibilityState({}: {}, util: BlockUtility): boolean {
+        const sprite = this.getActiveSprite(util);
 
         if (sprite === null) {
             console.warn("Sprite visibility defaulting to false!");
@@ -95,8 +96,8 @@ class Matterer /* extends ResetDefaultValues */ {
 
         return sprite.visible.valueOf();
     }
-    
-    public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE } : { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: "IN" | "OUT", ANIMATION_STYLE: AnimationStyles }, /* util: BlockUtility */ ) {
+
+    public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE } : { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: "IN" | "OUT", ANIMATION_STYLE: AnimationStyles }, util: BlockUtility ) {
         // console.log("Scratch:", Scratch);
         // console.log("Utility", util);
         // console.log("Scratch Runtime:", util.runtime);
@@ -111,13 +112,13 @@ class Matterer /* extends ResetDefaultValues */ {
 
         if (TARGET_TRANSPARENCY !== null && TARGET_TRANSPARENCY >= 0 && TARGET_TRANSPARENCY <= Matterer.MaxTransparency) {
             try {
-                const ScratchRuntime = this?.scratch?.vm?.runtime ?? null;
+                const ScratchRuntime = util.runtime ?? null;
 
                 if (ScratchRuntime === null || ScratchRuntime === undefined) {
                     throw new Error("ScratchRuntime is unavailable.");
                 }
 
-                const CurrentSprite = (ScratchRuntime.sequencer?.activeThread?.target) ?? null;
+                const CurrentSprite = ((ScratchRuntime.sequencer?.activeThread?.target) ?? util?.target) ?? null;
 
                 const CalculatedGhostValueTarget = TARGET_TRANSPARENCY * 100;
                 const InitialTransparency = CurrentSprite?.effects.ghost ?? 0;
