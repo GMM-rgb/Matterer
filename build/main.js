@@ -12,6 +12,10 @@ class Matterer {
     constructor() {
         this.scratch = Scratch !== null && Scratch !== void 0 ? Scratch : undefined;
     }
+    getActiveSprite() {
+        var _a, _b, _c, _d;
+        return (_d = (_c = (_b = (_a = Scratch.vm.runtime.sequencer) === null || _a === void 0 ? void 0 : _a.activeThread) === null || _b === void 0 ? void 0 : _b.target) !== null && _c !== void 0 ? _c : Scratch.vm.runtime._editingTarget) !== null && _d !== void 0 ? _d : null;
+    }
     ValidateInputType({ VALUE, TYPE_DEFINITION }) {
         const type = TYPE_DEFINITION.toLowerCase();
         if (ValidScratchTypeDefinitions.indexOf(type) === -1) {
@@ -52,9 +56,8 @@ class Matterer {
         }
         return BooleanInstancer();
     }
-    FetchVisibilityState({}, util) {
-        var _a, _b, _c;
-        const sprite = (_c = (_a = util === null || util === void 0 ? void 0 : util.target) !== null && _a !== void 0 ? _a : (_b = Scratch.vm.runtime.sequencer.activeThread) === null || _b === void 0 ? void 0 : _b.target) !== null && _c !== void 0 ? _c : null;
+    FetchVisibilityState({}) {
+        const sprite = this.getActiveSprite();
         if (sprite === null) {
             console.warn("Sprite visibility defaulting to false!");
             return false;

@@ -19,6 +19,12 @@ class Matterer /* extends ResetDefaultValues */ {
         this.scratch = Scratch ?? undefined;
     }
 
+    private getActiveSprite() {
+    return Scratch.vm.runtime.sequencer?.activeThread?.target
+        ?? Scratch.vm.runtime._editingTarget
+        ?? null;
+    }
+    
     public ValidateInputType({ VALUE, TYPE_DEFINITION } : { VALUE: string, TYPE_DEFINITION: string }): boolean {
         const type = TYPE_DEFINITION.toLowerCase();
 
@@ -79,10 +85,8 @@ class Matterer /* extends ResetDefaultValues */ {
         return BooleanInstancer();
     }
 
-    public FetchVisibilityState({}: {}, util: BlockUtility): boolean {
-        const sprite = util?.target 
-            ?? Scratch.vm.runtime.sequencer.activeThread?.target 
-            ?? null;
+    public FetchVisibilityState({}: {}): boolean {
+        const sprite = this.getActiveSprite();
 
         if (sprite === null) {
             console.warn("Sprite visibility defaulting to false!");
@@ -91,7 +95,7 @@ class Matterer /* extends ResetDefaultValues */ {
 
         return sprite.visible.valueOf();
     }
-
+    
     public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE } : { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: "IN" | "OUT", ANIMATION_STYLE: AnimationStyles }, /* util: BlockUtility */ ) {
         // console.log("Scratch:", Scratch);
         // console.log("Utility", util);
