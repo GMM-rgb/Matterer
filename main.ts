@@ -79,9 +79,9 @@ class Matterer /* extends ResetDefaultValues */ {
         return BooleanInstancer();
     }
 
-    public FetchVisibilityState(util: BlockUtility): boolean {
+    public FetchVisibilityState({}, util: BlockUtility): boolean {
         const Runtime = util?.runtime ?? null;
-        const CurrentSpriteVisibilityFetch = Runtime.sequencer.activeThread?.target ?? null;
+        const CurrentSpriteVisibilityFetch = Runtime?.sequencer?.activeThread?.target ?? null;
 
         console.debug(`Visibility Fetch Runtime:\t${Runtime}`);
         console.debug(`Visibility Fetch Sprite:\t${CurrentSpriteVisibilityFetch ?? new String(null).valueOf()}`);
