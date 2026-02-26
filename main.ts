@@ -1,10 +1,5 @@
 // import { Matterer } from "./modules/matterer_logistics.js";
 
-
-
-
-
-
 type AnimationStyles = "linear" | "easeIn" | "easeOut" | "easeInOut" | "bounce";
 const ValidScratchTypeDefinitions: Readonly<string[]> = ['string', 'number', 'boolean', 'object'];
 
@@ -97,11 +92,12 @@ class Matterer /* extends ResetDefaultValues */ {
         return sprite.visible.valueOf();
     }
 
-    public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE } : { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: "IN" | "OUT", ANIMATION_STYLE: AnimationStyles }, util: BlockUtility ) {
-        // console.log("Scratch:", Scratch);
-        // console.log("Utility", util);
-        // console.log("Scratch Runtime:", util.runtime);
-
+    //
+    // Animation Logistics
+    //
+    private __currentlyAnimating: Set<string> = new Set();
+    //
+    public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE }: { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: "IN" | "OUT", ANIMATION_STYLE: AnimationStyles }, util: BlockUtility) {
         const easings = {
             linear: (t: number) => t,
             easeIn: (t: number) => t * t,
@@ -111,59 +107,65 @@ class Matterer /* extends ResetDefaultValues */ {
         };
 
         if (TARGET_TRANSPARENCY !== null && TARGET_TRANSPARENCY >= 0 && TARGET_TRANSPARENCY <= Matterer.MaxTransparency) {
+            const CurrentSprite = this.getActiveSprite(util);
+            const spriteId = CurrentSprite?.id ?? null;
+            if (spriteId === null) return;
+
             try {
                 const ScratchRuntime = util.runtime ?? null;
-
-                if (ScratchRuntime === null || ScratchRuntime === undefined) {
-                    throw new Error("ScratchRuntime is unavailable.");
-                }
-
-                const CurrentSprite = ((ScratchRuntime.sequencer?.activeThread?.target) ?? util?.target) ?? null;
+                if (ScratchRuntime === null) throw new Error("ScratchRuntime is unavailable.");
 
                 const CalculatedGhostValueTarget = TARGET_TRANSPARENCY * 100;
                 const InitialTransparency = CurrentSprite?.effects.ghost ?? 0;
-
                 const StartValue = InitialTransparency;
-                const EndValue = ANIMATION_DIRECTION === "OUT" ? 0 : CalculatedGhostValueTarget;
-
+                const EndValue = ANIMATION_DIRECTION === "IN" ? 0 : CalculatedGhostValueTarget;
                 const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * ScratchRuntime.frameLoop.framerate);
-                const TransparencyStepSize = (EndValue - StartValue) / TransparencySteps;
+
+                this.__currentlyAnimating.add(spriteId);
+                // fire the start hat directly
+                ScratchRuntime.startHats("matterer_TrackAnimationStartTrigger");
 
                 for (let CurrentTransparencyStep = 0; CurrentTransparencyStep < TransparencySteps; CurrentTransparencyStep++) {
                     const t = CurrentTransparencyStep / TransparencySteps;
                     const eased = easings[ANIMATION_STYLE](t);
                     CurrentSprite?.setEffect(VM.Effect.Ghost, StartValue + (EndValue - StartValue) * eased);
-                    // Await the next frame interpretation
                     await Matterer.waitOneFrame();
                 }
 
-                // guarantees the sprite always land exactly on the inputted target
                 CurrentSprite?.setEffect(VM.Effect.Ghost, EndValue);
             } catch (FadeError) {
-                if (FadeError != null) {
-                    console.error(new String(FadeError).trim());
-                }
+                if (FadeError != null) console.error(new String(FadeError).trim());
             } finally {
-                return void null;
+                this.__currentlyAnimating.delete(spriteId);
+                // fire the end hat directly
+                util.runtime.startHats("matterer_TrackAnimationEndTrigger");
             }
         }
     }
 
-    public CheckIsAnimatingProperty() {
-        
+    public TrackAnimationStartTrigger({}: {}, util: BlockUtility): boolean {
+        return true;
+    }
+
+    public TrackAnimationEndTrigger({}: {}, util: BlockUtility): boolean {
+        return true;
+    }
+
+    public CheckIsAnimatingProperty({ REQUESTED_ANIMATING_STATE_TYPE } : { REQUESTED_ANIMATING_STATE_TYPE: "animating" | "not animating" }, ) {
+        if (REQUESTED_ANIMATING_STATE_TYPE != null) {
+            if (REQUESTED_ANIMATING_STATE_TYPE === "animating" || REQUESTED_ANIMATING_STATE_TYPE === "not animating") {
+                // try {
+
+                // } catch () {
+
+                // }
+            }
+        }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
+//
+//
+//
 class MattererDefinitions extends Matterer implements Scratch.Extension {
     getInfo(): Scratch.Info {
         return {
@@ -244,6 +246,39 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                         },
                     },
                 },
+                {
+                    blockType: Scratch.BlockType.BOOLEAN,
+                    opcode: (this.CheckIsAnimatingProperty as Function).name.valueOf(),
+                    text: "is [REQUESTED_ANIMATING_STATE_TYPE]?",
+                    arguments: {
+                        REQUESTED_ANIMATING_STATE_TYPE: {
+                            type: Scratch.ArgumentType.STRING,
+                            menu: "AnimatingStateTypeRequestMenu",
+                            defaultValue: "animating",
+                        },
+                    },
+                    hideFromPalette: true,
+                },
+                "---",
+                {
+                    blockType: Scratch.BlockType.LABEL,
+                    text: "Animation Events",
+                },
+                {
+                    blockType: Scratch.BlockType.HAT,
+                    text: "when sprite animation starts",
+                    opcode: this.TrackAnimationStartTrigger.name.valueOf(),
+                    shouldRestartExistingThreads: false,
+                    isEdgeActivated: false,
+                    arguments: {},
+                },
+                {
+                    blockType: Scratch.BlockType.HAT,
+                    text: "when sprite animation ends",
+                    opcode: (this.TrackAnimationEndTrigger as Function).name.valueOf(),
+                    shouldRestartExistingThreads: false,
+                    isEdgeActivated: false,
+                },
                 "---",
                 {
                     blockType: Scratch.BlockType.LABEL,
@@ -284,8 +319,12 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                 AnimationStyleChoice: {
                     items: new Array('linear', 'easeIn', 'easeOut', 'easeInOut', 'bounce'),
                     acceptReporters: false,
-                }
-                // 
+                },
+                // Animating Fetch Menus
+                AnimatingStateTypeRequestMenu: {
+                    items: new Array('animating', 'not animating'),
+                    acceptReporters: true,
+                },
             }
         }
     }

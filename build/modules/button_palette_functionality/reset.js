@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ResetDefaultValues = void 0;
-class ResetDefaultValues {
+export class ResetDefaultValues {
     resetValues() {
         if (ScratchGUI.ActiveTabIndex.Blocks.valueOf() === 1) {
         }
@@ -10,4 +7,3 @@ class ResetDefaultValues {
         }
     }
 }
-exports.ResetDefaultValues = ResetDefaultValues;
