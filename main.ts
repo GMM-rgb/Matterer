@@ -1,4 +1,4 @@
-// import { Matterer } from "./modules/matterer_logistics.js";
+// import { Matterer } from "./modules/matterer_logistics.js"; // old fragment
 
 type AnimationStyles = "linear" | "easeIn" | "easeOut" | "easeInOut" | "bounce";
 const ValidScratchTypeDefinitions: Readonly<string[]> = ['string', 'number', 'boolean', 'object'];
@@ -165,6 +165,20 @@ class Matterer /* extends ResetDefaultValues */ {
             return !isAnimating;
         }
     }
+
+    private AnimationChangeEvent = function(): void {
+        
+    }
+
+    public LoopUntilAnimationFinished(util: BlockUtility): void {
+        const TargetSprite = this.getActiveSprite(util);
+        if (TargetSprite !== null) {
+            TargetSprite.listeners.bind("E", undefined)
+            while (this.__currentlyAnimating.has(TargetSprite?.id ?? new String(null).valueOf())) {
+                
+            }
+        }
+    }
 }
 //
 // Block Class Definitions
@@ -247,6 +261,19 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                             menu: "AnimationStyleChoice",
                             defaultValue: "linear",
                         },
+                    },
+                },
+                {
+                    blockType: Scratch.BlockType.CONDITIONAL,
+                    hideFromPalette: true,
+                    isTerminal: false,
+                    branchCount: 1,
+                    opcode: null,
+                    text: "while animating with screen refresh [INCLUDES_SCREEN_REFRESH] do?",
+                    arguments: {
+                        INCLUDES_SCREEN_REFRESH: {
+                            type: Scratch.ArgumentType.BOOLEAN,
+                        }
                     },
                 },
                 {
