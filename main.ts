@@ -1,5 +1,10 @@
 // import { Matterer } from "./modules/matterer_logistics.js";
 
+
+
+
+
+
 type AnimationStyles = "linear" | "easeIn" | "easeOut" | "easeInOut" | "bounce";
 const ValidScratchTypeDefinitions: Readonly<string[]> = ['string', 'number', 'boolean', 'object'];
 
@@ -75,7 +80,7 @@ class Matterer /* extends ResetDefaultValues */ {
     }
 
     public FetchVisibilityState(util: BlockUtility): boolean {
-        const CurrentSpriteVisibilityFetch = util.target ?? null;
+        const CurrentSpriteVisibilityFetch = (util.runtime.sequencer?.activeThread?.target ?? util.target) ?? null;
         return CurrentSpriteVisibilityFetch.visible.valueOf();
     }
 
@@ -131,6 +136,16 @@ class Matterer /* extends ResetDefaultValues */ {
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
 
 class MattererDefinitions extends Matterer implements Scratch.Extension {
     getInfo(): Scratch.Info {

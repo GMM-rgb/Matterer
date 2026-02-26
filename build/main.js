@@ -53,8 +53,8 @@ class Matterer {
         return BooleanInstancer();
     }
     FetchVisibilityState(util) {
-        var _a;
-        const CurrentSpriteVisibilityFetch = (_a = util.target) !== null && _a !== void 0 ? _a : null;
+        var _a, _b, _c, _d;
+        const CurrentSpriteVisibilityFetch = (_d = ((_c = (_b = (_a = util.runtime.sequencer) === null || _a === void 0 ? void 0 : _a.activeThread) === null || _b === void 0 ? void 0 : _b.target) !== null && _c !== void 0 ? _c : util.target)) !== null && _d !== void 0 ? _d : null;
         return CurrentSpriteVisibilityFetch.visible.valueOf();
     }
     FadeTransparency(_a, util_1) {
