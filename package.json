@@ -1,6 +1,7 @@
 {
     "scripts": {
-        "build": "tsc && node compile.js"
+        "unused": "tsc && node compile.js",
+        "build": "node compile.js"
     },
     "dependencies": {
         "fs": "^0.0.1-security",
