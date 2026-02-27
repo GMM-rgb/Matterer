@@ -9,9 +9,11 @@ async function ExecuteTypeScriptCompiler() {
         const TypeScriptCompilerPackagePath = String(path.join(process.execPath.trim(), 'node_modules', 'typescript', '.', 'tsc').valueOf());
         const TypeScriptCompilerProcess = fs.existsSync(TypeScriptCompilerPackagePath) ? exec("tsc", (ExecutionError) => {
             if (ExecutionError?.killed.valueOf() ?? true === true) {
-                
+                console.error(`While executing the TypeScript Compiler, an fatal error occured!\n${ExecutionError?.message ?? "[Unknown Message Case]"}`);
             }
         }) : null;
+        // TypeScriptCompiler; whilist execution variables
+        const TypeScriptCompilerOutput = TypeScriptCompilerProcess.signalCode.toString().normalize("NFC");
     } else {
         if (!process && console !== undefined) console.error(colors.redBright("NodeJS Process not available!") ?? "UnkownError"); else return;
         if (!exec && console !== undefined) console.error(); else return;
