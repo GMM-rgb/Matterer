@@ -164,8 +164,8 @@ class Matterer /* extends ResetDefaultValues */ {
         }
     }
 
-    private AnimationChangeEvent = function(): void {
-        
+    private ToggleCurrentRunningAnimation({ ANIMATION_TOGGLE_STATE } : { ANIMATION_TOGGLE_STATE: "STOP" | "PAUSE" | "RESUME"}, util: BlockUtility): void {
+        const AcceptableToggleInputs = ['STOP', 'PAUSE', 'RESUME'];
     }
 
     public LoopUntilAnimationFinished({ INCLUDES_SCREEN_REFRESH }: { INCLUDES_SCREEN_REFRESH: boolean }, util: BlockUtility) {
@@ -175,7 +175,10 @@ class Matterer /* extends ResetDefaultValues */ {
         const isAnimating = this.__currentlyAnimating.has(sprite.id);
 
         if (isAnimating) {
-            util.startBranch(1, INCLUDES_SCREEN_REFRESH);
+            (async () => {
+                await Matterer.waitOneFrame();
+                util.startBranch(1, INCLUDES_SCREEN_REFRESH);
+            })();
         }
     }
 }
@@ -185,8 +188,10 @@ class Matterer /* extends ResetDefaultValues */ {
 class MattererDefinitions extends Matterer implements Scratch.Extension {
     constructor() {
         super();
-        console.debug(Scratch.BlockType.LOOP);
-        console.debug(Scratch.BlockType.CONDITIONAL);
+        (() => {
+            console.debug(Scratch.BlockType.LOOP);
+            console.debug(Scratch.BlockType.CONDITIONAL);
+        })();
     }
 
     getInfo(): Scratch.Info {
@@ -315,6 +320,20 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                     isEdgeActivated: false,
                     arguments: {},
                 },
+                {
+                    blockType: Scratch.BlockType.EVENT,
+                    shouldRestartExistingThreads: true,
+                    isEdgeActivated: false,
+                    opcode: null,
+                    text: "[ANIMATION_TOGGLE_STATE] the current animation on sprite",
+                    arguments: {
+                        ANIMATION_TOGGLE_STATE: {
+                            type: Scratch.ArgumentType.STRING,
+                            menu: "AnimationControlStateMenu",
+                            defaultValue: "STOP",
+                        },
+                    },
+                },
                 "---",
                 {
                     blockType: Scratch.BlockType.LABEL,
@@ -361,6 +380,10 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                     items: new Array('animating', 'not animating'),
                     acceptReporters: true,
                 },
+                AnimationControlStateMenu: {
+                    items: new Array('STOP', 'PAUSE', 'RESUME'),
+                    acceptReporters: false,
+                }
             }
         }
     }
