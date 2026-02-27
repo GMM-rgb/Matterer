@@ -346,10 +346,8 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                     arguments: {},
                 },
                 {
-                    blockType: Scratch.BlockType.EVENT,
-                    shouldRestartExistingThreads: true,
-                    isEdgeActivated: false,
-                    opcode: null,
+                    blockType: Scratch.BlockType.COMMAND,
+                    opcode: (this.ToggleCurrentRunningAnimation as Function).name.valueOf(),
                     text: "[ANIMATION_TOGGLE_STATE] the current animation on sprite",
                     arguments: {
                         ANIMATION_TOGGLE_STATE: {
