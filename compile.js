@@ -1,4 +1,4 @@
-const { exec } = require('child_process');
+const { exec, ChildProcess } = require('child_process');
 const colors = require("picocolors");
 const fs = require('fs');
 const path = require('path');
@@ -9,8 +9,8 @@ async function ExecuteTypeScriptCompiler() {
         console.log(colors.yellowBright("Compiling TypeScript Files to build..."));
 
         // TypeScriptCompiler Execution Thread
-        const TypeScriptCompilerPackagePath = String(path.join(process.execPath.replaceAll("\\", " ").replace("node.exe", "").replaceAll(" ", "\\").trim(), 'node_modules', 'typescript', '.', 'tsc'));
-        const TypeScriptCompilerProcess = (fs ?? null)?.existsSync(TypeScriptCompilerPackagePath) ? exec("tsc", (ExecutionError) => {
+        const TypeScriptCompilerPackagePath = String(path.join(process.execPath.replaceAll("\\", " ").replace("node.exe", "").replaceAll(" ", "\\").trim(), 'node_modules', 'typescript', 'bin', '.', 'tsc'));
+        const TypeScriptCompilerProcess = fs.existsSync(TypeScriptCompilerPackagePath) ? exec("tsc -b -w", (ExecutionError) => {
             if (ExecutionError?.killed.valueOf() ?? true === true) {
                 console.error(`While executing the TypeScript Compiler, an fatal error occured!\n${ExecutionError?.message ?? "[Unknown Message Case]"}`);
             } else {
@@ -20,13 +20,16 @@ async function ExecuteTypeScriptCompiler() {
 
         // Debugging
         console.debug(TypeScriptCompilerPackagePath);
+        console.debug(String(TypeScriptCompilerProcess).valueOf());
 
         // TypeScriptCompiler; whilist execution variables
         const TypeScriptCompilerOutput = TypeScriptCompilerProcess?.connected ?? null;
 
         // Fullfilled Promise Resolver
         await Promise.resolve().then(() => {
-            console.log(colors.greenBright("Finished Compiling TypeScript!"));
+            if (TypeScriptCompilerProcess !== null && TypeScriptCompilerProcess instanceof ChildProcess) {
+                console.log(colors.greenBright("Finished Compiling TypeScript!"));
+            }
         });
     } else {
         await Promise.reject();

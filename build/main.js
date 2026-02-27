@@ -1,4 +1,3 @@
-// @turbo-unsandboxed
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -68,7 +67,7 @@ class Matterer {
     }
     FadeTransparency(_a, util_1) {
         return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE }, util) {
-            var _b, _c, _d;
+            var _b, _c, _d, _e;
             const easings = {
                 linear: (t) => t,
                 easeIn: (t) => t * t,
@@ -91,7 +90,7 @@ class Matterer {
                     const EndValue = ANIMATION_DIRECTION === "IN" ? 0 : CalculatedGhostValueTarget;
                     const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * ScratchRuntime.frameLoop.framerate);
                     this.__currentlyAnimating.add(spriteId);
-                    ScratchRuntime.startHats("matterer_TrackAnimationStartTrigger");
+                    (_e = ScratchRuntime === null || ScratchRuntime === void 0 ? void 0 : ScratchRuntime.startHats("matterer_TrackAnimationStartTrigger")) !== null && _e !== void 0 ? _e : void null;
                     for (let CurrentTransparencyStep = 0; CurrentTransparencyStep < TransparencySteps; CurrentTransparencyStep++) {
                         const t = CurrentTransparencyStep / TransparencySteps;
                         const eased = easings[ANIMATION_STYLE](t);

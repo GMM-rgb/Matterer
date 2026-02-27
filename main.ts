@@ -121,7 +121,7 @@ class Matterer /* extends ResetDefaultValues */ {
 
                 this.__currentlyAnimating.add(spriteId);
                 // fire the start hat directly
-                ScratchRuntime.startHats("matterer_TrackAnimationStartTrigger");
+                ScratchRuntime?.startHats("matterer_TrackAnimationStartTrigger") ?? void null;
 
                 for (let CurrentTransparencyStep = 0; CurrentTransparencyStep < TransparencySteps; CurrentTransparencyStep++) {
                     const t = CurrentTransparencyStep / TransparencySteps;
