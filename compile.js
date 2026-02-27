@@ -1,5 +1,22 @@
+const { exec } = require('child_process');
+const colors = require("picocolors");
 const fs = require('fs');
 const path = require('path');
+const process = require("process");
+
+async function ExecuteTypeScriptCompiler() {
+    if (exec && process) {
+        const TypeScriptCompilerPackagePath = String(path.join(process.execPath.trim(), 'node_modules', 'typescript', '.', 'tsc').valueOf());
+        const TypeScriptCompilerProcess = fs.existsSync(TypeScriptCompilerPackagePath) ? exec("tsc", (ExecutionError) => {
+            if (ExecutionError?.killed.valueOf() ?? true === true) {
+                
+            }
+        }) : null;
+    } else {
+        if (!process && console !== undefined) console.error(colors.redBright("NodeJS Process not available!") ?? "UnkownError"); else return;
+        if (!exec && console !== undefined) console.error(); else return;
+    }
+}
 
 const filePath = path.join(__dirname, 'build/main.js'); 
 const header = `// @turbo-unsandboxed\n`;

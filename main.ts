@@ -164,8 +164,33 @@ class Matterer /* extends ResetDefaultValues */ {
         }
     }
 
-    private ToggleCurrentRunningAnimation({ ANIMATION_TOGGLE_STATE } : { ANIMATION_TOGGLE_STATE: "STOP" | "PAUSE" | "RESUME"}, util: BlockUtility): void {
-        const AcceptableToggleInputs = ['STOP', 'PAUSE', 'RESUME'];
+    public async ToggleCurrentRunningAnimation({ ANIMATION_TOGGLE_STATE } : { ANIMATION_TOGGLE_STATE: "STOP" | "PAUSE" | "RESUME"}, util: BlockUtility): Promise<void> {
+        const AcceptableToggleInputs: string[] = ['STOP', 'PAUSE', 'RESUME'];
+        let ExecutedRequestedToggle: boolean = false;
+        let InputToggleValid: boolean = false;
+        AcceptableToggleInputs.forEach(AcceptableInput => {
+            if (AcceptableInput !== null && typeof(AcceptableInput) === "string") {
+                if (ANIMATION_TOGGLE_STATE === AcceptableInput.valueOf()) {
+                    InputToggleValid = true;
+                }
+            }
+        }, { queueMicrotask: true });
+
+        await Matterer.waitOneFrame();
+
+        function CancelAnimation(): boolean {
+            try {
+
+            } catch (ToggleError) {
+                console.error("Toggle Error Message:\t" + String(ToggleError ?? null).trim());
+            } finally {
+                if (ExecutedRequestedToggle.valueOf() === true) {
+                    return Boolean(true);
+                } else {
+                    return Boolean(false);
+                }
+            }
+        }
     }
 
     public LoopUntilAnimationFinished({ INCLUDES_SCREEN_REFRESH }: { INCLUDES_SCREEN_REFRESH: boolean }, util: BlockUtility) {

@@ -12,8 +12,6 @@ const ValidScratchTypeDefinitions = ['string', 'number', 'boolean', 'object'];
 class Matterer {
     constructor() {
         this.__currentlyAnimating = new Set();
-        this.AnimationChangeEvent = function () {
-        };
         this.scratch = Scratch !== null && Scratch !== void 0 ? Scratch : undefined;
     }
     getActiveSprite(util) {
@@ -133,13 +131,46 @@ class Matterer {
             return !isAnimating;
         }
     }
+    ToggleCurrentRunningAnimation(_a, util_1) {
+        return __awaiter(this, arguments, void 0, function* ({ ANIMATION_TOGGLE_STATE }, util) {
+            const AcceptableToggleInputs = ['STOP', 'PAUSE', 'RESUME'];
+            let ExecutedRequestedToggle = false;
+            let InputToggleValid = false;
+            AcceptableToggleInputs.forEach(AcceptableInput => {
+                if (AcceptableInput !== null && typeof (AcceptableInput) === "string") {
+                    if (ANIMATION_TOGGLE_STATE === AcceptableInput.valueOf()) {
+                        InputToggleValid = true;
+                    }
+                }
+            }, { queueMicrotask: true });
+            yield Matterer.waitOneFrame();
+            function CancelAnimation() {
+                try {
+                }
+                catch (ToggleError) {
+                    console.error("Toggle Error Message:\t" + String(ToggleError !== null && ToggleError !== void 0 ? ToggleError : null).trim());
+                }
+                finally {
+                    if (ExecutedRequestedToggle.valueOf() === true) {
+                        return Boolean(true);
+                    }
+                    else {
+                        return Boolean(false);
+                    }
+                }
+            }
+        });
+    }
     LoopUntilAnimationFinished({ INCLUDES_SCREEN_REFRESH }, util) {
         const sprite = this.getActiveSprite(util);
         if (sprite === null)
             return;
         const isAnimating = this.__currentlyAnimating.has(sprite.id);
         if (isAnimating) {
-            util.startBranch(1, INCLUDES_SCREEN_REFRESH);
+            (() => __awaiter(this, void 0, void 0, function* () {
+                yield Matterer.waitOneFrame();
+                util.startBranch(1, INCLUDES_SCREEN_REFRESH);
+            }))();
         }
     }
 }
@@ -149,8 +180,10 @@ Matterer.MaxTransparency = 100;
 class MattererDefinitions extends Matterer {
     constructor() {
         super();
-        console.debug(Scratch.BlockType.LOOP);
-        console.debug(Scratch.BlockType.CONDITIONAL);
+        (() => {
+            console.debug(Scratch.BlockType.LOOP);
+            console.debug(Scratch.BlockType.CONDITIONAL);
+        })();
     }
     getInfo() {
         return {
@@ -265,6 +298,20 @@ class MattererDefinitions extends Matterer {
                     isEdgeActivated: false,
                     arguments: {},
                 },
+                {
+                    blockType: Scratch.BlockType.EVENT,
+                    shouldRestartExistingThreads: true,
+                    isEdgeActivated: false,
+                    opcode: null,
+                    text: "[ANIMATION_TOGGLE_STATE] the current animation on sprite",
+                    arguments: {
+                        ANIMATION_TOGGLE_STATE: {
+                            type: Scratch.ArgumentType.STRING,
+                            menu: "AnimationControlStateMenu",
+                            defaultValue: "STOP",
+                        },
+                    },
+                },
                 "---",
                 {
                     blockType: Scratch.BlockType.LABEL,
@@ -302,6 +349,10 @@ class MattererDefinitions extends Matterer {
                     items: new Array('animating', 'not animating'),
                     acceptReporters: true,
                 },
+                AnimationControlStateMenu: {
+                    items: new Array('STOP', 'PAUSE', 'RESUME'),
+                    acceptReporters: false,
+                }
             }
         };
     }
