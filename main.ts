@@ -1,5 +1,3 @@
-// import { Matterer } from "./modules/matterer_logistics.js"; // old fragment
-
 type AnimationStyles = "linear" | "easeIn" | "easeOut" | "easeInOut" | "bounce";
 const ValidScratchTypeDefinitions: Readonly<string[]> = ['string', 'number', 'boolean', 'object'];
 
@@ -97,7 +95,7 @@ class Matterer /* extends ResetDefaultValues */ {
     //
     private __currentlyAnimating: Set<string> = new Set();
     //
-    public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE }: { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: "IN" | "OUT", ANIMATION_STYLE: AnimationStyles }, util: BlockUtility) {
+    public async FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE }: { TARGET_TRANSPARENCY: number, ANIMATION_DIRECTION: "IN" | "OUT", ANIMATION_STYLE: AnimationStyles }, util: BlockUtility): Promise<void> {
         const easings = {
             linear: (t: number) => t,
             easeIn: (t: number) => t * t,
@@ -170,13 +168,14 @@ class Matterer /* extends ResetDefaultValues */ {
         
     }
 
-    public LoopUntilAnimationFinished(util: BlockUtility): void {
-        const TargetSprite = this.getActiveSprite(util);
-        if (TargetSprite !== null) {
-            TargetSprite.listeners.bind("E", undefined)
-            while (this.__currentlyAnimating.has(TargetSprite?.id ?? new String(null).valueOf())) {
-                
-            }
+    public LoopUntilAnimationFinished({ INCLUDES_SCREEN_REFRESH }: { INCLUDES_SCREEN_REFRESH: boolean }, util: BlockUtility) {
+        const sprite = this.getActiveSprite(util);
+        if (sprite === null) return;
+
+        const isAnimating = this.__currentlyAnimating.has(sprite.id);
+
+        if (isAnimating) {
+            util.startBranch(1, INCLUDES_SCREEN_REFRESH);
         }
     }
 }
@@ -184,6 +183,12 @@ class Matterer /* extends ResetDefaultValues */ {
 // Block Class Definitions
 //
 class MattererDefinitions extends Matterer implements Scratch.Extension {
+    constructor() {
+        super();
+        console.debug(Scratch.BlockType.LOOP);
+        console.debug(Scratch.BlockType.CONDITIONAL);
+    }
+
     getInfo(): Scratch.Info {
         return {
             id: "matterer",
@@ -264,11 +269,11 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                     },
                 },
                 {
-                    blockType: Scratch.BlockType.CONDITIONAL,
-                    hideFromPalette: true,
+                    blockType: Scratch.BlockType.LOOP,
+                    hideFromPalette: false,
                     isTerminal: false,
                     branchCount: 1,
-                    opcode: null,
+                    opcode: (this.LoopUntilAnimationFinished as Function).name.valueOf(),
                     text: "while animating with screen refresh [INCLUDES_SCREEN_REFRESH] do?",
                     arguments: {
                         INCLUDES_SCREEN_REFRESH: {
@@ -308,11 +313,12 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                     opcode: (this.TrackAnimationEndTrigger as Function).name.valueOf(),
                     shouldRestartExistingThreads: false,
                     isEdgeActivated: false,
+                    arguments: {},
                 },
                 "---",
                 {
                     blockType: Scratch.BlockType.LABEL,
-                    text: "Visual Control",
+                    text: "Visual Sensing",
                 },
                 {
                     blockType: Scratch.BlockType.BOOLEAN,

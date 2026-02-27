@@ -1,3 +1,4 @@
+// @turbo-unsandboxed
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -11,6 +12,8 @@ const ValidScratchTypeDefinitions = ['string', 'number', 'boolean', 'object'];
 class Matterer {
     constructor() {
         this.__currentlyAnimating = new Set();
+        this.AnimationChangeEvent = function () {
+        };
         this.scratch = Scratch !== null && Scratch !== void 0 ? Scratch : undefined;
     }
     getActiveSprite(util) {
@@ -130,11 +133,25 @@ class Matterer {
             return !isAnimating;
         }
     }
+    LoopUntilAnimationFinished({ INCLUDES_SCREEN_REFRESH }, util) {
+        const sprite = this.getActiveSprite(util);
+        if (sprite === null)
+            return;
+        const isAnimating = this.__currentlyAnimating.has(sprite.id);
+        if (isAnimating) {
+            util.startBranch(1, INCLUDES_SCREEN_REFRESH);
+        }
+    }
 }
 Matterer.ValueTypes = [String, Boolean];
 Matterer.waitOneFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
 Matterer.MaxTransparency = 100;
 class MattererDefinitions extends Matterer {
+    constructor() {
+        super();
+        console.debug(Scratch.BlockType.LOOP);
+        console.debug(Scratch.BlockType.CONDITIONAL);
+    }
     getInfo() {
         return {
             id: "matterer",
@@ -203,6 +220,19 @@ class MattererDefinitions extends Matterer {
                     },
                 },
                 {
+                    blockType: Scratch.BlockType.LOOP,
+                    hideFromPalette: false,
+                    isTerminal: false,
+                    branchCount: 1,
+                    opcode: this.LoopUntilAnimationFinished.name.valueOf(),
+                    text: "while animating with screen refresh [INCLUDES_SCREEN_REFRESH] do?",
+                    arguments: {
+                        INCLUDES_SCREEN_REFRESH: {
+                            type: Scratch.ArgumentType.BOOLEAN,
+                        }
+                    },
+                },
+                {
                     blockType: Scratch.BlockType.BOOLEAN,
                     opcode: this.CheckIsAnimatingProperty.name.valueOf(),
                     text: "is [REQUESTED_ANIMATING_STATE_TYPE]?",
@@ -233,11 +263,12 @@ class MattererDefinitions extends Matterer {
                     opcode: this.TrackAnimationEndTrigger.name.valueOf(),
                     shouldRestartExistingThreads: false,
                     isEdgeActivated: false,
+                    arguments: {},
                 },
                 "---",
                 {
                     blockType: Scratch.BlockType.LABEL,
-                    text: "Visual Control",
+                    text: "Visual Sensing",
                 },
                 {
                     blockType: Scratch.BlockType.BOOLEAN,
