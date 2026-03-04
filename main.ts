@@ -141,11 +141,13 @@ class Matterer /* extends ResetDefaultValues */ {
         }
     }
 
-    public TrackAnimationStartTrigger({}: {}, util: BlockUtility): boolean {
+    public async TrackAnimationStartTrigger({}: {}, util: BlockUtility): Promise<boolean> {
+        await Matterer.waitOneFrame();
         return true;
     }
 
-    public TrackAnimationEndTrigger({}: {}, util: BlockUtility): boolean {
+    public async TrackAnimationEndTrigger({}: {}, util: BlockUtility): Promise<boolean> {
+        await Matterer.waitOneFrame();
         return true;
     }
 
@@ -346,6 +348,7 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                     arguments: {},
                 },
                 {
+                    hideFromPalette: true,
                     blockType: Scratch.BlockType.COMMAND,
                     opcode: (this.ToggleCurrentRunningAnimation as Function).name.valueOf(),
                     text: "[ANIMATION_TOGGLE_STATE] the current animation on sprite",
