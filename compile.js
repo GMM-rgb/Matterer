@@ -52,7 +52,7 @@ const filePath = path.join(__dirname, 'build/main.js');
 const header = `// @turbo-unsandboxed\n`;
 
 process.on("SIGINT", () => {
-    process.kill(parseFloat(String(process.pid)));
+    process.kill(parseFloat(String(process.pid).valueOf()));
 });
 
 (async () => {
