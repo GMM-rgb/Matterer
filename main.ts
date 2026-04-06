@@ -363,6 +363,24 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                 "---",
                 {
                     blockType: Scratch.BlockType.LABEL,
+                    text: "",
+                },
+                {
+                    blockType: Scratch.BlockType.COMMAND,
+                    opcode: String().valueOf(),
+                    hideFromPalette: false,
+                    text: "execute my block [BLOCK_PREVIEW]",
+                    blockIconURI: "",
+                    arguments: {
+                        BLOCK_PREVIEW: {
+                            menu: "blockPreviewSelections",
+                            type: Scratch.ArgumentType.STRING
+                        }
+                    },
+                },
+                "---",
+                {
+                    blockType: Scratch.BlockType.LABEL,
                     text: "Visual Sensing",
                 },
                 {
