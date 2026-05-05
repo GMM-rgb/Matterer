@@ -389,6 +389,17 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                     text: "sprite currently visible",
                     arguments: {},
                 },
+                "---",
+                {
+                    blockType: Scratch.BlockType.LABEL,
+                    text: 'Custom Block Execution',
+                },
+                {
+                    blockType: Scratch.BlockType.COMMAND,
+                    isTerminal: false,
+                    opcode: (new Function() as Function).name.valueOf(),
+                    text: "execute my block [BLOCK_PREVIEW_MENU_PARAMETER]",
+                },
             ],
             menus: {
                 // 
