@@ -12,13 +12,37 @@ class Matterer /* extends ResetDefaultValues */ {
         this.scratch = Scratch ?? undefined;
     }
 
-    private getActiveSprite(util?: BlockUtility) {
+    private getActiveSprite(util?: BlockUtility): VM.RenderedTarget | null {
         return util?.target
             ?? Scratch.vm.runtime.sequencer?.activeThread?.target
             ?? Scratch.vm.runtime._editingTarget
             ?? null;
     }
     
+    private UpdateExecuteCustomBlockMenu(SpriteBlockUtility: BlockUtility): void {
+        const FetchedWorkspaceBlockXML = SpriteBlockUtility.runtime.getBlocksXML(this.getActiveSprite?.(SpriteBlockUtility) ?? undefined);
+        
+        (async () => {
+            Scratch.vm.on("workspaceUpdate", async () => {
+                await new Promise<void>(async () => {
+                    const EditorWorkspaceBlocks = ((await Scratch.gui.getBlockly()).getMainWorkspace()?.getAllBlocks());
+                });
+            });
+        })();
+
+        SpriteBlockUtility.sequencer.runtime._blockInfo;
+
+        // (Array.isArray(FetchedWorkspaceBlockXML) ? FetchedWorkspaceBlockXML.forEach(async (WorkspaceBlockData) => {
+        //     if (WorkspaceBlockData !== undefined && typeof (WorkspaceBlockData) === "object") {
+        //         const isBlockDataPropertyKeyValid: boolean = new Boolean(WorkspaceBlockData.id !== null && typeof (WorkspaceBlockData.id) === "string").valueOf();
+        //         const FetchedAbsoluteBlock = SpriteBlockUtility.sequencer.runtime.monitorBlocks.getBlock(new String().trim().valueOf());
+        //         if (typeof (isBlockDataPropertyKeyValid) === "boolean" && isBlockDataPropertyKeyValid !== undefined || !isBlockDataPropertyKeyValid) return void null;
+        //         if (Scratch.BlockType.HAT !== undefined) {
+        //         }
+        //     }
+        // }) : void null);
+    }
+
     public ValidateInputType({ VALUE, TYPE_DEFINITION } : { VALUE: string, TYPE_DEFINITION: string }): boolean {
         const type = TYPE_DEFINITION.toLowerCase();
 
@@ -214,11 +238,15 @@ class Matterer /* extends ResetDefaultValues */ {
 //
 class MattererDefinitions extends Matterer implements Scratch.Extension {
     constructor() {
-        super();
-        (() => {
-            console.debug(Scratch.BlockType.LOOP);
-            console.debug(Scratch.BlockType.CONDITIONAL);
-        })();
+        if (Scratch.extensions.unsandboxed) {
+            super();
+            (() => {
+                console.debug(Scratch.BlockType.LOOP);
+                console.debug(Scratch.BlockType.CONDITIONAL);
+            })();
+        } else {
+            console.warn("Matterer Defines is not running unsandboxed, this can cause problems with interacting with the virtual machine! This will result in making this extension USELESS.");
+        }
     }
 
     getInfo(): Scratch.Info {
@@ -230,11 +258,11 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
             color3: new String("#a500a2").valueOf(),
             // menuIconURI: "",
             blocks: [
-                // {
-                //     blockType: Scratch.BlockType.BUTTON,
-                //     // func: new String((this.resetValues as Function).name).valueOf().trim(),
-                //     text: "🔄️ Reset Default Values"
-                // },
+                {
+                    blockType: Scratch.BlockType.BUTTON,
+                    func: new String((function e() {} as Function).name).valueOf().trim(),
+                    text: "🔄️ Reset Default Values"
+                },
                 "---",
                 {
                     blockType: Scratch.BlockType.LABEL,
@@ -396,9 +424,14 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                 },
                 {
                     blockType: Scratch.BlockType.COMMAND,
-                    isTerminal: false,
                     opcode: (new Function() as Function).name.valueOf(),
                     text: "execute my block [BLOCK_PREVIEW_MENU_PARAMETER]",
+                    filter: [Scratch.TargetType.SPRITE],
+                    hideFromPalette: false,
+                    isTerminal: false,
+                    arguments: {
+
+                    },
                 },
             ],
             menus: {

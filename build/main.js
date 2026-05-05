@@ -1,4 +1,4 @@
-// @turbo-unsandboxed
+"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -17,6 +17,8 @@ class Matterer {
     getActiveSprite(util) {
         var _a, _b, _c, _d, _e;
         return (_e = (_d = (_a = util === null || util === void 0 ? void 0 : util.target) !== null && _a !== void 0 ? _a : (_c = (_b = Scratch.vm.runtime.sequencer) === null || _b === void 0 ? void 0 : _b.activeThread) === null || _c === void 0 ? void 0 : _c.target) !== null && _d !== void 0 ? _d : Scratch.vm.runtime._editingTarget) !== null && _e !== void 0 ? _e : null;
+    }
+    UpdateExecuteCustomBlockMenu() {
     }
     ValidateInputType({ VALUE, TYPE_DEFINITION }) {
         const type = TYPE_DEFINITION.toLowerCase();
@@ -111,11 +113,17 @@ class Matterer {
             }
         });
     }
-    TrackAnimationStartTrigger({}, util) {
-        return true;
+    TrackAnimationStartTrigger(_a, util_1) {
+        return __awaiter(this, arguments, void 0, function* ({}, util) {
+            yield Matterer.waitOneFrame();
+            return true;
+        });
     }
-    TrackAnimationEndTrigger({}, util) {
-        return true;
+    TrackAnimationEndTrigger(_a, util_1) {
+        return __awaiter(this, arguments, void 0, function* ({}, util) {
+            yield Matterer.waitOneFrame();
+            return true;
+        });
     }
     CheckIsAnimatingProperty({ REQUESTED_ANIMATING_STATE_TYPE }, util) {
         if (REQUESTED_ANIMATING_STATE_TYPE === null)
@@ -193,6 +201,11 @@ class MattererDefinitions extends Matterer {
             color2: new String("#c41681").valueOf(),
             color3: new String("#a500a2").valueOf(),
             blocks: [
+                {
+                    blockType: Scratch.BlockType.BUTTON,
+                    func: new String(function e() { }.name).valueOf().trim(),
+                    text: "🔄️ Reset Default Values"
+                },
                 "---",
                 {
                     blockType: Scratch.BlockType.LABEL,
@@ -299,10 +312,9 @@ class MattererDefinitions extends Matterer {
                     arguments: {},
                 },
                 {
-                    blockType: Scratch.BlockType.EVENT,
-                    shouldRestartExistingThreads: true,
-                    isEdgeActivated: false,
-                    opcode: null,
+                    hideFromPalette: true,
+                    blockType: Scratch.BlockType.COMMAND,
+                    opcode: this.ToggleCurrentRunningAnimation.name.valueOf(),
                     text: "[ANIMATION_TOGGLE_STATE] the current animation on sprite",
                     arguments: {
                         ANIMATION_TOGGLE_STATE: {
@@ -315,12 +327,44 @@ class MattererDefinitions extends Matterer {
                 "---",
                 {
                     blockType: Scratch.BlockType.LABEL,
+                    text: "",
+                },
+                {
+                    blockType: Scratch.BlockType.COMMAND,
+                    opcode: String().valueOf(),
+                    hideFromPalette: false,
+                    text: "execute my block [BLOCK_PREVIEW]",
+                    blockIconURI: "",
+                    arguments: {
+                        BLOCK_PREVIEW: {
+                            menu: "blockPreviewSelections",
+                            type: Scratch.ArgumentType.STRING
+                        }
+                    },
+                },
+                "---",
+                {
+                    blockType: Scratch.BlockType.LABEL,
                     text: "Visual Sensing",
                 },
                 {
                     blockType: Scratch.BlockType.BOOLEAN,
                     opcode: this.FetchVisibilityState.name.valueOf(),
                     text: "sprite currently visible",
+                    arguments: {},
+                },
+                "---",
+                {
+                    blockType: Scratch.BlockType.LABEL,
+                    text: 'Custom Block Execution',
+                },
+                {
+                    blockType: Scratch.BlockType.COMMAND,
+                    opcode: new Function().name.valueOf(),
+                    text: "execute my block [BLOCK_PREVIEW_MENU_PARAMETER]",
+                    filter: [Scratch.TargetType.SPRITE],
+                    hideFromPalette: false,
+                    isTerminal: false,
                     arguments: {},
                 },
             ],
