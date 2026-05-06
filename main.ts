@@ -43,6 +43,88 @@ class Matterer /* extends ResetDefaultValues */ {
         // }) : void null);
     }
 
+public ExecuteMyBlock({ BLOCK_NAME, PARAMS_JSON }: { 
+    BLOCK_NAME: string; 
+    PARAMS_JSON: string 
+}, util: BlockUtility): void {
+
+    if (!BLOCK_NAME || typeof BLOCK_NAME !== "string") {
+        console.warn("[Matterer] No block name provided");
+        return;
+    }
+
+    let args: Record<string, any> = {};
+    if (PARAMS_JSON?.trim()) {
+        try {
+            args = JSON.parse(PARAMS_JSON);
+        } catch (e) {
+            console.error("[Matterer] Invalid JSON in parameters:", PARAMS_JSON);
+            return;
+        }
+    }
+
+    const runtime = util.runtime || Scratch?.vm?.runtime;
+    if (!runtime) {
+        console.error("[Matterer] Runtime not available");
+        return;
+    }
+
+    const target = util.target || this.getActiveSprite(util);
+    if (!target) {
+        console.warn("[Matterer] No target sprite found");
+        return;
+    }
+
+    try {
+        // Most reliable way in TurboWarp: use the procedures primitive directly
+        const callOpcode = "procedures_call";
+
+        // Push arguments onto the thread stack (TurboWarp style)
+        const thread = runtime.sequencer?.activeThread || this.getActiveSprite?.()?.runtime.sequencer.activeThread;
+
+        if (thread) {
+            // Set arguments for the call
+            thread.pushStack(args);
+        }
+
+        // Trigger the procedure call
+        runtime._primitives?.[callOpcode]?.({
+            mutation: {
+                proccode: BLOCK_NAME,
+                argumentids: JSON.stringify(Object.keys(args)),
+                warp: "true"
+            }
+        }, util);   // pass util so it runs on correct target
+
+        console.log(`✅ Executed custom block: "${BLOCK_NAME}"`, args);
+    } catch (err) {
+        console.error("[Matterer] Failed to execute custom block:", err);
+    }
+}
+
+// Helper to get list of custom blocks for the menu
+private getCustomBlockList(): string[] {
+    try {
+        const runtime = Scratch.vm?.runtime;
+        if (!runtime) return ["No custom blocks found"];
+
+        const blocks = runtime.targets.flatMap(t => 
+            Object.values(t.blocks._blocks || {}).filter(b => 
+                b.opcode === "procedures_prototype" || b.opcode === "procedures_definition"
+            )
+        );
+
+        const uniqueProccodes = new Set(
+            blocks.map(b => b.mutation?.proccode || b.proccode).filter(Boolean)
+        );
+
+        return Array.from(uniqueProccodes);
+    } catch (e) {
+        console.error(e);
+        return ["Error fetching blocks"];
+    }
+}
+
     public ValidateInputType({ VALUE, TYPE_DEFINITION } : { VALUE: string, TYPE_DEFINITION: string }): boolean {
         const type = TYPE_DEFINITION.toLowerCase();
 
@@ -420,18 +502,40 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                 "---",
                 {
                     blockType: Scratch.BlockType.LABEL,
-                    text: 'Custom Block Execution',
+                    text: "Custom Block Executor"
                 },
                 {
                     blockType: Scratch.BlockType.COMMAND,
-                    opcode: (new Function() as Function).name.valueOf(),
-                    text: "execute my block [BLOCK_PREVIEW_MENU_PARAMETER]",
-                    filter: [Scratch.TargetType.SPRITE],
-                    hideFromPalette: false,
-                    isTerminal: false,
+                    opcode: "ExecuteMyBlock",
+                    text: "execute my block [BLOCK_NAME] with params [PARAMS_JSON]",
                     arguments: {
-
-                    },
+                        BLOCK_NAME: {
+                            type: Scratch.ArgumentType.STRING,
+                            menu: "customBlockMenu",
+                            defaultValue: ""
+                        },
+                        PARAMS_JSON: {
+                            type: Scratch.ArgumentType.STRING,
+                            defaultValue: '{"score": 100, "name": "player1"}'
+                        }
+                    }
+                },
+                // Reporter version that returns success
+                {
+                    blockType: Scratch.BlockType.REPORTER,
+                    opcode: "ExecuteMyBlockReporter",
+                    text: "execute my block [BLOCK_NAME] with [PARAMS_JSON] ?",
+                    arguments: {
+                        BLOCK_NAME: {
+                            type: Scratch.ArgumentType.STRING,
+                            menu: "customBlockMenu",
+                            defaultValue: ""
+                        },
+                        PARAMS_JSON: {
+                            type: Scratch.ArgumentType.STRING,
+                            defaultValue: '{"score": 100, "name": "player1"}'
+                        }
+                    }
                 },
             ],
             menus: {
@@ -471,6 +575,11 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                 AnimationControlStateMenu: {
                     items: new Array('STOP', 'PAUSE', 'RESUME'),
                     acceptReporters: false,
+                }
+                ///
+                customBlockMenu: {
+                    acceptReporters: false,
+                    items: () => this.getCustomBlocksMenu()
                 }
             }
         }
