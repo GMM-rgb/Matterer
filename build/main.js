@@ -1,4 +1,3 @@
-"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -18,7 +17,164 @@ class Matterer {
         var _a, _b, _c, _d, _e;
         return (_e = (_d = (_a = util === null || util === void 0 ? void 0 : util.target) !== null && _a !== void 0 ? _a : (_c = (_b = Scratch.vm.runtime.sequencer) === null || _b === void 0 ? void 0 : _b.activeThread) === null || _c === void 0 ? void 0 : _c.target) !== null && _d !== void 0 ? _d : Scratch.vm.runtime._editingTarget) !== null && _e !== void 0 ? _e : null;
     }
-    UpdateExecuteCustomBlockMenu() {
+    refreshCustomBlockMenu() {
+        var _a, _b;
+        try {
+            (_b = (_a = Scratch.vm) === null || _a === void 0 ? void 0 : _a.runtime) === null || _b === void 0 ? void 0 : _b.emit("PROJECT_CHANGED");
+            console.log("✅ Refreshed custom block menu");
+        }
+        catch (e) {
+            console.warn(e);
+        }
+    }
+    ExecuteMyBlock({ BLOCK_NAME, PARAMS_JSON }, util) {
+        var _a, _b, _c, _d, _e, _f, _g, _h;
+        if (!(BLOCK_NAME === null || BLOCK_NAME === void 0 ? void 0 : BLOCK_NAME.trim())) {
+            console.warn("[Matterer] No block name provided");
+            return;
+        }
+        let args = {};
+        if ((PARAMS_JSON === null || PARAMS_JSON === void 0 ? void 0 : PARAMS_JSON.trim()) && PARAMS_JSON.trim() !== "{}") {
+            try {
+                args = JSON.parse(PARAMS_JSON);
+            }
+            catch (e) {
+                console.error("[Matterer] Invalid JSON:", PARAMS_JSON);
+                return;
+            }
+        }
+        const runtime = (_a = util.runtime) !== null && _a !== void 0 ? _a : (_b = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) === null || _b === void 0 ? void 0 : _b.runtime;
+        if (!runtime)
+            return;
+        let argumentnames = [];
+        let argumentdefaults = [];
+        let definitionBlockId = null;
+        let definitionTarget = null;
+        outer: for (const target of runtime.targets) {
+            const blocks = (_c = target.blocks) === null || _c === void 0 ? void 0 : _c._blocks;
+            if (!blocks)
+                continue;
+            for (const [blockId, block] of Object.entries(blocks)) {
+                if ((block === null || block === void 0 ? void 0 : block.opcode) !== "procedures_definition")
+                    continue;
+                const protoId = (_e = (_d = block.inputs) === null || _d === void 0 ? void 0 : _d.custom_block) === null || _e === void 0 ? void 0 : _e.block;
+                if (!protoId)
+                    continue;
+                const proto = blocks[protoId];
+                if (((_f = proto === null || proto === void 0 ? void 0 : proto.mutation) === null || _f === void 0 ? void 0 : _f.proccode) !== BLOCK_NAME)
+                    continue;
+                try {
+                    argumentnames = JSON.parse((_g = proto.mutation.argumentnames) !== null && _g !== void 0 ? _g : "[]");
+                    argumentdefaults = JSON.parse((_h = proto.mutation.argumentdefaults) !== null && _h !== void 0 ? _h : "[]");
+                }
+                catch (_j) { }
+                definitionBlockId = blockId;
+                definitionTarget = target;
+                break outer;
+            }
+        }
+        if (!definitionBlockId || !definitionTarget) {
+            console.warn(`[Matterer] No definition block found for proccode: "${BLOCK_NAME}"`);
+            return;
+        }
+        const positionalValues = Object.values(args);
+        const paramValues = argumentnames.map((name, i) => {
+            var _a, _b;
+            return Object.prototype.hasOwnProperty.call(args, name)
+                ? args[name]
+                : ((_b = (_a = positionalValues[i]) !== null && _a !== void 0 ? _a : argumentdefaults[i]) !== null && _b !== void 0 ? _b : "");
+        });
+        const newThread = runtime._pushThread(definitionBlockId, definitionTarget);
+        if (!newThread) {
+            console.error("[Matterer] Failed to push thread for procedure");
+            return;
+        }
+        newThread.procedureParameterNames = argumentnames;
+        newThread.procedureArguments = paramValues;
+        console.log(`[Matterer] Executed "${BLOCK_NAME}"`, { argumentnames, paramValues });
+    }
+    GetBlockParamTemplate({ BLOCK_NAME }) {
+        var _a, _b, _c, _d, _e;
+        if (!(BLOCK_NAME === null || BLOCK_NAME === void 0 ? void 0 : BLOCK_NAME.trim()))
+            return "NO PARAMETERS";
+        const runtime = (_a = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) === null || _a === void 0 ? void 0 : _a.runtime;
+        if (!(runtime === null || runtime === void 0 ? void 0 : runtime.targets))
+            return "NO PARAMETERS";
+        for (const target of runtime.targets) {
+            const blocks = (_b = target.blocks) === null || _b === void 0 ? void 0 : _b._blocks;
+            if (!blocks)
+                continue;
+            for (const block of Object.values(blocks)) {
+                if ((block === null || block === void 0 ? void 0 : block.opcode) !== "procedures_prototype")
+                    continue;
+                if (((_c = block === null || block === void 0 ? void 0 : block.mutation) === null || _c === void 0 ? void 0 : _c.proccode) !== BLOCK_NAME)
+                    continue;
+                let argumentnames = [];
+                let argumentdefaults = [];
+                try {
+                    argumentnames = JSON.parse((_d = block.mutation.argumentnames) !== null && _d !== void 0 ? _d : "[]");
+                    argumentdefaults = JSON.parse((_e = block.mutation.argumentdefaults) !== null && _e !== void 0 ? _e : "[]");
+                }
+                catch (_f) { }
+                if (argumentnames.length === 0)
+                    return "NO PARAMETERS";
+                const template = {};
+                argumentnames.forEach((name, i) => {
+                    var _a;
+                    template[name] = (_a = argumentdefaults[i]) !== null && _a !== void 0 ? _a : "";
+                });
+                return JSON.stringify(template);
+            }
+        }
+        return "NO PARAMETERS";
+    }
+    getCustomBlockMenuItems() {
+        var _a, _b, _c, _d;
+        try {
+            const runtime = (_a = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) === null || _a === void 0 ? void 0 : _a.runtime;
+            if (!(runtime === null || runtime === void 0 ? void 0 : runtime.targets))
+                return [{ text: "(runtime not ready)", value: "" }];
+            const found = new Map();
+            for (const target of runtime.targets) {
+                const blocks = (_b = target.blocks) === null || _b === void 0 ? void 0 : _b._blocks;
+                if (!blocks)
+                    continue;
+                for (const block of Object.values(blocks)) {
+                    if ((block === null || block === void 0 ? void 0 : block.opcode) !== "procedures_prototype")
+                        continue;
+                    const proccode = (_c = block.mutation) === null || _c === void 0 ? void 0 : _c.proccode;
+                    if (!proccode || found.has(proccode))
+                        continue;
+                    let names = [];
+                    try {
+                        names = JSON.parse((_d = block.mutation.argumentnames) !== null && _d !== void 0 ? _d : "[]");
+                    }
+                    catch (_e) { }
+                    found.set(proccode, names);
+                }
+            }
+            if (found.size === 0)
+                return [{ text: "(no custom blocks yet)", value: "" }];
+            return Array.from(found.entries())
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([proccode, argnames]) => {
+                let argIndex = 0;
+                const text = proccode.replace(/%[sbn]/g, (match) => {
+                    var _a;
+                    const name = (_a = argnames[argIndex++]) !== null && _a !== void 0 ? _a : "?";
+                    if (match === "%b")
+                        return `<${name}>`;
+                    if (match === "%n")
+                        return `(${name})`;
+                    return `[${name}]`;
+                });
+                return { text, value: proccode };
+            });
+        }
+        catch (e) {
+            console.error("[Menu Error]", e);
+            return [{ text: "(error loading blocks)", value: "" }];
+        }
     }
     ValidateInputType({ VALUE, TYPE_DEFINITION }) {
         const type = TYPE_DEFINITION.toLowerCase();
@@ -188,12 +344,19 @@ Matterer.MaxTransparency = 100;
 class MattererDefinitions extends Matterer {
     constructor() {
         super();
-        (() => {
-            console.debug(Scratch.BlockType.LOOP);
-            console.debug(Scratch.BlockType.CONDITIONAL);
-        })();
+        if (this.scratch.extensions.unsandboxed) {
+            this.getCustomBlockMenuItems = this.getCustomBlockMenuItems.bind(this);
+            (() => {
+                console.debug(Scratch.BlockType.LOOP);
+                console.debug(Scratch.BlockType.CONDITIONAL);
+            })();
+        }
+        else {
+            console.warn("Matterer Defines is not running unsandboxed, this can cause problems with interacting with the virtual machine! This will result in making this extension USELESS.");
+        }
     }
     getInfo() {
+        const unsandboxed = this.scratch.extensions.unsandboxed;
         return {
             id: "matterer",
             name: 'Matterer Defines',
@@ -312,8 +475,9 @@ class MattererDefinitions extends Matterer {
                     arguments: {},
                 },
                 {
-                    hideFromPalette: true,
-                    blockType: Scratch.BlockType.COMMAND,
+                    hideFromPalette: false,
+                    isEdgeActivated: false,
+                    blockType: Scratch.BlockType.EVENT,
                     opcode: this.ToggleCurrentRunningAnimation.name.valueOf(),
                     text: "[ANIMATION_TOGGLE_STATE] the current animation on sprite",
                     arguments: {
@@ -322,24 +486,6 @@ class MattererDefinitions extends Matterer {
                             menu: "AnimationControlStateMenu",
                             defaultValue: "STOP",
                         },
-                    },
-                },
-                "---",
-                {
-                    blockType: Scratch.BlockType.LABEL,
-                    text: "",
-                },
-                {
-                    blockType: Scratch.BlockType.COMMAND,
-                    opcode: String().valueOf(),
-                    hideFromPalette: false,
-                    text: "execute my block [BLOCK_PREVIEW]",
-                    blockIconURI: "",
-                    arguments: {
-                        BLOCK_PREVIEW: {
-                            menu: "blockPreviewSelections",
-                            type: Scratch.ArgumentType.STRING
-                        }
                     },
                 },
                 "---",
@@ -356,16 +502,40 @@ class MattererDefinitions extends Matterer {
                 "---",
                 {
                     blockType: Scratch.BlockType.LABEL,
-                    text: 'Custom Block Execution',
+                    text: "Custom Block Executor",
+                },
+                {
+                    blockType: Scratch.BlockType.BUTTON,
+                    text: "🔄 Refresh My Blocks List",
+                    func: "refreshCustomBlockMenu"
                 },
                 {
                     blockType: Scratch.BlockType.COMMAND,
-                    opcode: new Function().name.valueOf(),
-                    text: "execute my block [BLOCK_PREVIEW_MENU_PARAMETER]",
-                    filter: [Scratch.TargetType.SPRITE],
-                    hideFromPalette: false,
-                    isTerminal: false,
-                    arguments: {},
+                    opcode: "ExecuteMyBlock",
+                    text: "execute my block [BLOCK_NAME] with [PARAMS_JSON]",
+                    arguments: {
+                        BLOCK_NAME: {
+                            type: Scratch.ArgumentType.STRING,
+                            menu: "customBlockMenu",
+                            defaultValue: ""
+                        },
+                        PARAMS_JSON: {
+                            type: Scratch.ArgumentType.STRING,
+                            defaultValue: "{}"
+                        }
+                    }
+                },
+                {
+                    blockType: Scratch.BlockType.REPORTER,
+                    opcode: "GetBlockParamTemplate",
+                    text: "param template for [BLOCK_NAME]",
+                    arguments: {
+                        BLOCK_NAME: {
+                            type: Scratch.ArgumentType.STRING,
+                            menu: "customBlockMenu",
+                            defaultValue: ""
+                        }
+                    }
                 },
             ],
             menus: {
@@ -396,8 +566,14 @@ class MattererDefinitions extends Matterer {
                 AnimationControlStateMenu: {
                     items: new Array('STOP', 'PAUSE', 'RESUME'),
                     acceptReporters: false,
-                }
-            }
+                },
+                customBlockMenu: {
+                    acceptReporters: true,
+                    items: unsandboxed
+                        ? this.getCustomBlockMenuItems
+                        : [{ text: "(requires unsandboxed mode)", value: "" }],
+                },
+            },
         };
     }
 }
