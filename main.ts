@@ -1,13 +1,19 @@
 type AnimationStyles = "linear" | "easeIn" | "easeOut" | "easeInOut" | "bounce";
 const ValidScratchTypeDefinitions: Readonly<string[]> = ['string', 'number', 'boolean', 'object'];
 
+type ProcedureMeta = {
+    proccode: string;
+    argumentNames: string[];
+    argumentIds: string[];
+    argumentDefaults: string[];
+    definitionBlockId: string;
+    target: any;
+};
+
 class Matterer {
     static ValueTypes = [String, Boolean];
     static waitOneFrame = (): Promise<void> => new Promise(resolve => requestAnimationFrame(() => resolve()));
     static MaxTransparency: Readonly<number> = 100;
-
-    protected _cachedMenuItems: { text: string; value: string }[] = [];
-    protected _menuCacheDirty = true;
 
     scratch: typeof Scratch;
 
@@ -15,16 +21,169 @@ class Matterer {
         this.scratch = Scratch ?? undefined;
     }
 
+    private _procedureIndex = new Map<string, ProcedureMeta>();
+    private _compiledBridges = new Map<string, (args: Record<string, any>, util: BlockUtility) => void>();
+    private _menuCacheDirty = true;
+    private _cachedMenuItems: { text: string; value: string }[] = [];
+
+    private scanCustomBlocks(): void {
+        const runtime: any = Scratch?.vm?.runtime;
+        if (!runtime?.targets) return;
+
+        this._procedureIndex.clear();
+
+        for (const target of runtime.targets) {
+            const blocks = target.blocks?._blocks;
+            if (!blocks) continue;
+
+            for (const [blockId, block] of Object.entries(blocks) as [string, any][]) {
+                if (block?.opcode !== "procedures_definition") continue;
+
+                const customBlockInput = block.inputs?.custom_block;
+                let protoId: string | null = null;
+
+                if (customBlockInput?.block) {
+                    protoId = customBlockInput.block;
+                } else if (Array.isArray(customBlockInput) && customBlockInput.length > 1) {
+                    protoId = customBlockInput[1];
+                }
+
+                if (!protoId) continue;
+
+                const proto = blocks[protoId];
+                if (!proto || proto.opcode !== "procedures_prototype") continue;
+
+                const proccode: string | undefined = proto.mutation?.proccode;
+                if (!proccode) continue;
+
+                let argumentNames: string[] = [];
+                let argumentIds: string[] = [];
+                let argumentDefaults: string[] = [];
+
+                try {
+                    argumentNames = JSON.parse(proto.mutation.argumentnames ?? "[]");
+                    argumentIds = JSON.parse(proto.mutation.argumentids ?? "[]");
+                    argumentDefaults = JSON.parse(proto.mutation.argumentdefaults ?? "[]");
+                } catch { }
+
+                this._procedureIndex.set(proccode, {
+                    proccode,
+                    argumentNames,
+                    argumentIds,
+                    argumentDefaults,
+                    definitionBlockId: blockId,
+                    target
+                });
+            }
+        }
+    }
+
+    private compileBlockBridge(meta: ProcedureMeta): (args: Record<string, any>, util: BlockUtility) => void {
+        const bridge = (args: Record<string, any>, util: BlockUtility) => {
+            const safeValue = (v: any) => (v === undefined || v === null) ? "" : v;
+
+            const positionalValues = Object.values(args || {});
+            const paramValues = meta.argumentNames.map((name, i) => {
+                if (Object.prototype.hasOwnProperty.call(args, name)) {
+                    return safeValue(args[name]);
+                }
+
+                if (i < positionalValues.length && positionalValues[i] !== undefined) {
+                    return safeValue(positionalValues[i]);
+                }
+
+                return "";
+            });
+
+            const paramsByName: Record<string, any> = {};
+            const paramsById: Record<string, any> = {};
+            const paramsByIndex: Record<string, any> = {};
+
+            for (let i = 0; i < paramValues.length; i++) {
+                const value = safeValue(paramValues[i]);
+
+                if (meta.argumentNames[i] !== undefined) {
+                    paramsByName[meta.argumentNames[i]] = value;
+                    paramsByIndex[String(i)] = value;
+                }
+
+                if (meta.argumentIds[i] !== undefined) {
+                    paramsById[meta.argumentIds[i]] = value;
+                }
+            }
+
+            const mergedParams = {
+                ...paramsByIndex,
+                ...paramsByName,
+                ...paramsById
+            };
+
+            const runtime: any = (util as any).runtime ?? Scratch?.vm?.runtime;
+            const newThread: any = runtime?._pushThread(meta.definitionBlockId, meta.target);
+
+            if (!newThread) {
+                console.error("[Matterer] Failed to push thread");
+                return;
+            }
+
+            // Keep every likely lookup location seeded.
+            newThread.parametersCache = newThread.parametersCache ?? {};
+            newThread.parametersCache[meta.proccode] = mergedParams;
+
+            newThread.procedureParameterNames = meta.argumentNames.slice();
+            newThread.procedureParameterIds = meta.argumentIds.slice();
+            newThread.procedureArguments = paramValues.slice();
+
+            const liveFrame: any =
+                newThread.compatibilityStackFrame ??
+                (Array.isArray(newThread.stackFrames) && newThread.stackFrames.length > 0
+                    ? newThread.stackFrames[newThread.stackFrames.length - 1]
+                    : null) ??
+                newThread.stackFrame ??
+                null;
+
+            if (liveFrame) {
+                liveFrame.params = mergedParams;
+                liveFrame.parameters = mergedParams;
+                liveFrame.reporterValues = mergedParams;
+                liveFrame.customArgs = mergedParams;
+                liveFrame.procedureParameterNames = meta.argumentNames.slice();
+                liveFrame.procedureParameterIds = meta.argumentIds.slice();
+                liveFrame.procedureArguments = paramValues.slice();
+                liveFrame.reported = null;
+                liveFrame.reporting = "";
+            }
+
+            newThread.compatibilityStackFrame = liveFrame;
+            newThread.stackFrame = liveFrame;
+
+            if (Array.isArray(newThread.stackFrames) && newThread.stackFrames.length > 0) {
+                newThread.stackFrames[newThread.stackFrames.length - 1] = liveFrame;
+            } else if (liveFrame) {
+                newThread.stackFrames = [liveFrame];
+            }
+
+            newThread.isCompiled = false;
+            newThread.triedToCompile = false;
+
+            console.log(`[Matterer] Executed "${meta.proccode}"`, {
+                argumentNames: meta.argumentNames,
+                argumentIds: meta.argumentIds,
+                paramValues,
+                mergedParams
+            });
+        };
+
+        return bridge;
+    }
+
     public initializeDynamicMenuSystem() {
         const vm = Scratch.vm;
         const runtime: any = vm.runtime;
         runtime.ext_Matterer = this;
         const refreshMenus = () => {
-            this._menuCacheDirty = true;
-
-            console.log(
-                "[Matterer] Menu cache invalidated"
-            );
+            this._menuCacheDirty = new Boolean(true).valueOf();
+            console.debug("[Matterer] Menu cache invalidated");
         };
 
         vm.on("workspaceUpdate", refreshMenus);
@@ -63,6 +222,22 @@ class Matterer {
         { BLOCK_NAME, PARAMS_JSON }: { BLOCK_NAME: string; PARAMS_JSON: string },
         util: BlockUtility
     ): void {
+        const normalizeBlockName = (value: any): string => {
+            if (typeof value === "string") return value;
+            if (value && typeof value === "object") {
+                return String(
+                    value.value ??
+                    value.text ??
+                    value.proccode ??
+                    value.blockName ??
+                    ""
+                );
+            }
+            return String(value ?? "");
+        };
+
+        BLOCK_NAME = normalizeBlockName(BLOCK_NAME);
+
         if (!BLOCK_NAME?.trim()) {
             console.warn("[Matterer] No block name provided");
             return;
@@ -78,121 +253,21 @@ class Matterer {
             }
         }
 
-        const runtime: any = (util as any).runtime ?? Scratch?.vm?.runtime;
-        if (!runtime?.targets) return;
+        this.scanCustomBlocks();
 
-        let argumentnames: string[] = [];
-        let argumentids: string[] = [];
-        let argumentdefaults: string[] = [];
-        let definitionBlockId: string | null = null;
-        let definitionTarget: any = null;
-        let prototypeMutationProccode: string | null = null;
-
-        outer:
-        for (const target of runtime.targets) {
-            const blocks = target.blocks?._blocks;
-            if (!blocks) continue;
-
-            for (const [blockId, block] of Object.entries(blocks) as [string, any][]) {
-                if (block?.opcode !== "procedures_definition") continue;
-
-                const customBlockInput = block.inputs?.custom_block;
-                let protoId: string | null = null;
-
-                if (customBlockInput?.block) {
-                    protoId = customBlockInput.block;
-                } else if (Array.isArray(customBlockInput) && customBlockInput.length > 1) {
-                    protoId = customBlockInput[1];
-                }
-
-                if (!protoId) continue;
-
-                const proto = blocks[protoId];
-                if (!proto || proto.opcode !== "procedures_prototype") continue;
-
-                const proccode = proto.mutation?.proccode;
-                if (proccode !== BLOCK_NAME) continue;
-
-                try {
-                    argumentnames = JSON.parse(proto.mutation.argumentnames ?? "[]");
-                    argumentids = JSON.parse(proto.mutation.argumentids ?? "[]");
-                    argumentdefaults = JSON.parse(proto.mutation.argumentdefaults ?? "[]");
-                } catch { }
-
-                definitionBlockId = blockId;
-                definitionTarget = target;
-                prototypeMutationProccode = proccode;
-                break outer;
-            }
-        }
-
-        if (!definitionBlockId || !definitionTarget || !prototypeMutationProccode) {
+        const meta = this._procedureIndex.get(BLOCK_NAME);
+        if (!meta) {
             console.warn(`[Matterer] No definition block found for proccode: "${BLOCK_NAME}"`);
             return;
         }
 
-        const positionalValues = Object.values(args);
-
-        const paramValues: any[] = argumentnames.map((name, i) =>
-            Object.prototype.hasOwnProperty.call(args, name)
-                ? args[name]
-                : (positionalValues[i] ?? argumentdefaults[i] ?? "")
-        );
-
-        const paramsByName: Record<string, any> = {};
-        const paramsById: Record<string, any> = {};
-        const paramsByIndex: Record<string, any> = {};
-
-        for (let i = 0; i < paramValues.length; i++) {
-            const value = paramValues[i];
-
-            if (argumentnames[i] !== undefined) {
-                paramsByName[argumentnames[i]] = value;
-                paramsByIndex[String(i)] = value;
-            }
-
-            if (argumentids[i] !== undefined) {
-                paramsById[argumentids[i]] = value;
-            }
+        let bridge = this._compiledBridges.get(meta.proccode);
+        if (!bridge) {
+            bridge = this.compileBlockBridge(meta);
+            this._compiledBridges.set(meta.proccode, bridge);
         }
 
-        const mergedParams = {
-            ...paramsByIndex,
-            ...paramsByName,
-            ...paramsById
-        };
-
-        const newThread: any = runtime._pushThread(definitionBlockId, definitionTarget);
-        if (!newThread) {
-            console.error("[Matterer] Failed to push thread");
-            return;
-        }
-
-        newThread.parametersCache = newThread.parametersCache ?? {};
-        newThread.parametersCache[BLOCK_NAME] = mergedParams;
-        newThread.parametersCache[prototypeMutationProccode] = mergedParams;
-
-        newThread.procedureParameterNames = argumentnames.slice();
-        newThread.procedureParameterIds = argumentids.slice();
-        newThread.procedureArguments = paramValues.slice();
-
-        newThread.stackFrame = newThread.stackFrame ?? {};
-        newThread.stackFrame.parameters = mergedParams;
-        newThread.stackFrame.args = paramValues.slice();
-        newThread.stackFrame.customBlockArgs = mergedParams;
-
-        console.groupCollapsed("THREAD", newThread);
-        console.log("parametersCache", newThread.parametersCache);
-        console.log("procedureParameterNames", newThread.procedureParameterNames);
-        console.log("procedureArguments", newThread.procedureArguments);
-        console.groupEnd();
-
-        console.log(`[Matterer] Executed "${BLOCK_NAME}"`, {
-            argumentnames,
-            argumentids,
-            paramValues,
-            mergedParams
-        });
+        bridge(args, util);
     }
 
     public GetBlockParamTemplate({ BLOCK_NAME }: { BLOCK_NAME: string }): string {

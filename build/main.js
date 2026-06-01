@@ -10,10 +10,133 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 const ValidScratchTypeDefinitions = ['string', 'number', 'boolean', 'object'];
 class Matterer {
     constructor() {
-        this._cachedMenuItems = [];
+        this._procedureIndex = new Map();
+        this._compiledBridges = new Map();
         this._menuCacheDirty = true;
+        this._cachedMenuItems = [];
         this.__currentlyAnimating = new Set();
         this.scratch = Scratch !== null && Scratch !== void 0 ? Scratch : undefined;
+    }
+    scanCustomBlocks() {
+        var _a, _b, _c, _d, _e, _f, _g;
+        const runtime = (_a = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) === null || _a === void 0 ? void 0 : _a.runtime;
+        if (!(runtime === null || runtime === void 0 ? void 0 : runtime.targets))
+            return;
+        this._procedureIndex.clear();
+        for (const target of runtime.targets) {
+            const blocks = (_b = target.blocks) === null || _b === void 0 ? void 0 : _b._blocks;
+            if (!blocks)
+                continue;
+            for (const [blockId, block] of Object.entries(blocks)) {
+                if ((block === null || block === void 0 ? void 0 : block.opcode) !== "procedures_definition")
+                    continue;
+                const customBlockInput = (_c = block.inputs) === null || _c === void 0 ? void 0 : _c.custom_block;
+                let protoId = null;
+                if (customBlockInput === null || customBlockInput === void 0 ? void 0 : customBlockInput.block) {
+                    protoId = customBlockInput.block;
+                }
+                else if (Array.isArray(customBlockInput) && customBlockInput.length > 1) {
+                    protoId = customBlockInput[1];
+                }
+                if (!protoId)
+                    continue;
+                const proto = blocks[protoId];
+                if (!proto || proto.opcode !== "procedures_prototype")
+                    continue;
+                const proccode = (_d = proto.mutation) === null || _d === void 0 ? void 0 : _d.proccode;
+                if (!proccode)
+                    continue;
+                let argumentNames = [];
+                let argumentIds = [];
+                let argumentDefaults = [];
+                try {
+                    argumentNames = JSON.parse((_e = proto.mutation.argumentnames) !== null && _e !== void 0 ? _e : "[]");
+                    argumentIds = JSON.parse((_f = proto.mutation.argumentids) !== null && _f !== void 0 ? _f : "[]");
+                    argumentDefaults = JSON.parse((_g = proto.mutation.argumentdefaults) !== null && _g !== void 0 ? _g : "[]");
+                }
+                catch (_h) { }
+                this._procedureIndex.set(proccode, {
+                    proccode,
+                    argumentNames,
+                    argumentIds,
+                    argumentDefaults,
+                    definitionBlockId: blockId,
+                    target
+                });
+            }
+        }
+    }
+    compileBlockBridge(meta) {
+        const bridge = (args, util) => {
+            var _a, _b, _c, _d, _e, _f;
+            const safeValue = (v) => (v === undefined || v === null) ? "" : v;
+            const positionalValues = Object.values(args || {});
+            const paramValues = meta.argumentNames.map((name, i) => {
+                if (Object.prototype.hasOwnProperty.call(args, name)) {
+                    return safeValue(args[name]);
+                }
+                if (i < positionalValues.length && positionalValues[i] !== undefined) {
+                    return safeValue(positionalValues[i]);
+                }
+                return "";
+            });
+            const paramsByName = {};
+            const paramsById = {};
+            const paramsByIndex = {};
+            for (let i = 0; i < paramValues.length; i++) {
+                const value = safeValue(paramValues[i]);
+                if (meta.argumentNames[i] !== undefined) {
+                    paramsByName[meta.argumentNames[i]] = value;
+                    paramsByIndex[String(i)] = value;
+                }
+                if (meta.argumentIds[i] !== undefined) {
+                    paramsById[meta.argumentIds[i]] = value;
+                }
+            }
+            const mergedParams = Object.assign(Object.assign(Object.assign({}, paramsByIndex), paramsByName), paramsById);
+            const runtime = (_a = util.runtime) !== null && _a !== void 0 ? _a : (_b = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) === null || _b === void 0 ? void 0 : _b.runtime;
+            const newThread = runtime === null || runtime === void 0 ? void 0 : runtime._pushThread(meta.definitionBlockId, meta.target);
+            if (!newThread) {
+                console.error("[Matterer] Failed to push thread");
+                return;
+            }
+            newThread.parametersCache = (_c = newThread.parametersCache) !== null && _c !== void 0 ? _c : {};
+            newThread.parametersCache[meta.proccode] = mergedParams;
+            newThread.procedureParameterNames = meta.argumentNames.slice();
+            newThread.procedureParameterIds = meta.argumentIds.slice();
+            newThread.procedureArguments = paramValues.slice();
+            const liveFrame = (_f = (_e = (_d = newThread.compatibilityStackFrame) !== null && _d !== void 0 ? _d : (Array.isArray(newThread.stackFrames) && newThread.stackFrames.length > 0
+                ? newThread.stackFrames[newThread.stackFrames.length - 1]
+                : null)) !== null && _e !== void 0 ? _e : newThread.stackFrame) !== null && _f !== void 0 ? _f : null;
+            if (liveFrame) {
+                liveFrame.params = mergedParams;
+                liveFrame.parameters = mergedParams;
+                liveFrame.reporterValues = mergedParams;
+                liveFrame.customArgs = mergedParams;
+                liveFrame.procedureParameterNames = meta.argumentNames.slice();
+                liveFrame.procedureParameterIds = meta.argumentIds.slice();
+                liveFrame.procedureArguments = paramValues.slice();
+                liveFrame.reported = null;
+                liveFrame.reporting = "";
+            }
+            newThread.compatibilityStackFrame = liveFrame;
+            newThread.stackFrame = liveFrame;
+            if (Array.isArray(newThread.stackFrames) && newThread.stackFrames.length > 0) {
+                newThread.stackFrames[newThread.stackFrames.length - 1] = liveFrame;
+            }
+            else if (liveFrame) {
+                newThread.stackFrames = [liveFrame];
+            }
+            newThread.isCompiled = false;
+            newThread.triedToCompile = false;
+            console.log(`[Matterer] Executed "${meta.proccode}"`, {
+                argumentNames: meta.argumentNames,
+                argumentIds: meta.argumentIds,
+                paramValues,
+                mergedParams
+            });
+        };
+        return bridge;
     }
     initializeDynamicMenuSystem() {
         var _a, _b;
@@ -21,8 +144,8 @@ class Matterer {
         const runtime = vm.runtime;
         runtime.ext_Matterer = this;
         const refreshMenus = () => {
-            this._menuCacheDirty = true;
-            console.log("[Matterer] Menu cache invalidated");
+            this._menuCacheDirty = new Boolean(true).valueOf();
+            console.debug("[Matterer] Menu cache invalidated");
         };
         vm.on("workspaceUpdate", refreshMenus);
         (_a = runtime.on) === null || _a === void 0 ? void 0 : _a.call(runtime, "PROJECT_LOADED", refreshMenus);
@@ -48,7 +171,16 @@ class Matterer {
         }
     }
     ExecuteMyBlock({ BLOCK_NAME, PARAMS_JSON }, util) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+        const normalizeBlockName = (value) => {
+            var _a, _b, _c, _d;
+            if (typeof value === "string")
+                return value;
+            if (value && typeof value === "object") {
+                return String((_d = (_c = (_b = (_a = value.value) !== null && _a !== void 0 ? _a : value.text) !== null && _b !== void 0 ? _b : value.proccode) !== null && _c !== void 0 ? _c : value.blockName) !== null && _d !== void 0 ? _d : "");
+            }
+            return String(value !== null && value !== void 0 ? value : "");
+        };
+        BLOCK_NAME = normalizeBlockName(BLOCK_NAME);
         if (!(BLOCK_NAME === null || BLOCK_NAME === void 0 ? void 0 : BLOCK_NAME.trim())) {
             console.warn("[Matterer] No block name provided");
             return;
@@ -63,101 +195,18 @@ class Matterer {
                 return;
             }
         }
-        const runtime = (_a = util.runtime) !== null && _a !== void 0 ? _a : (_b = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) === null || _b === void 0 ? void 0 : _b.runtime;
-        if (!(runtime === null || runtime === void 0 ? void 0 : runtime.targets))
-            return;
-        let argumentnames = [];
-        let argumentids = [];
-        let argumentdefaults = [];
-        let definitionBlockId = null;
-        let definitionTarget = null;
-        let prototypeMutationProccode = null;
-        outer: for (const target of runtime.targets) {
-            const blocks = (_c = target.blocks) === null || _c === void 0 ? void 0 : _c._blocks;
-            if (!blocks)
-                continue;
-            for (const [blockId, block] of Object.entries(blocks)) {
-                if ((block === null || block === void 0 ? void 0 : block.opcode) !== "procedures_definition")
-                    continue;
-                const customBlockInput = (_d = block.inputs) === null || _d === void 0 ? void 0 : _d.custom_block;
-                let protoId = null;
-                if (customBlockInput === null || customBlockInput === void 0 ? void 0 : customBlockInput.block) {
-                    protoId = customBlockInput.block;
-                }
-                else if (Array.isArray(customBlockInput) && customBlockInput.length > 1) {
-                    protoId = customBlockInput[1];
-                }
-                if (!protoId)
-                    continue;
-                const proto = blocks[protoId];
-                if (!proto || proto.opcode !== "procedures_prototype")
-                    continue;
-                const proccode = (_e = proto.mutation) === null || _e === void 0 ? void 0 : _e.proccode;
-                if (proccode !== BLOCK_NAME)
-                    continue;
-                try {
-                    argumentnames = JSON.parse((_f = proto.mutation.argumentnames) !== null && _f !== void 0 ? _f : "[]");
-                    argumentids = JSON.parse((_g = proto.mutation.argumentids) !== null && _g !== void 0 ? _g : "[]");
-                    argumentdefaults = JSON.parse((_h = proto.mutation.argumentdefaults) !== null && _h !== void 0 ? _h : "[]");
-                }
-                catch (_l) { }
-                definitionBlockId = blockId;
-                definitionTarget = target;
-                prototypeMutationProccode = proccode;
-                break outer;
-            }
-        }
-        if (!definitionBlockId || !definitionTarget || !prototypeMutationProccode) {
+        this.scanCustomBlocks();
+        const meta = this._procedureIndex.get(BLOCK_NAME);
+        if (!meta) {
             console.warn(`[Matterer] No definition block found for proccode: "${BLOCK_NAME}"`);
             return;
         }
-        const positionalValues = Object.values(args);
-        const paramValues = argumentnames.map((name, i) => {
-            var _a, _b;
-            return Object.prototype.hasOwnProperty.call(args, name)
-                ? args[name]
-                : ((_b = (_a = positionalValues[i]) !== null && _a !== void 0 ? _a : argumentdefaults[i]) !== null && _b !== void 0 ? _b : "");
-        });
-        const paramsByName = {};
-        const paramsById = {};
-        const paramsByIndex = {};
-        for (let i = 0; i < paramValues.length; i++) {
-            const value = paramValues[i];
-            if (argumentnames[i] !== undefined) {
-                paramsByName[argumentnames[i]] = value;
-                paramsByIndex[String(i)] = value;
-            }
-            if (argumentids[i] !== undefined) {
-                paramsById[argumentids[i]] = value;
-            }
+        let bridge = this._compiledBridges.get(meta.proccode);
+        if (!bridge) {
+            bridge = this.compileBlockBridge(meta);
+            this._compiledBridges.set(meta.proccode, bridge);
         }
-        const mergedParams = Object.assign(Object.assign(Object.assign({}, paramsByIndex), paramsByName), paramsById);
-        const newThread = runtime._pushThread(definitionBlockId, definitionTarget);
-        if (!newThread) {
-            console.error("[Matterer] Failed to push thread");
-            return;
-        }
-        newThread.parametersCache = (_j = newThread.parametersCache) !== null && _j !== void 0 ? _j : {};
-        newThread.parametersCache[BLOCK_NAME] = mergedParams;
-        newThread.parametersCache[prototypeMutationProccode] = mergedParams;
-        newThread.procedureParameterNames = argumentnames.slice();
-        newThread.procedureParameterIds = argumentids.slice();
-        newThread.procedureArguments = paramValues.slice();
-        newThread.stackFrame = (_k = newThread.stackFrame) !== null && _k !== void 0 ? _k : {};
-        newThread.stackFrame.parameters = mergedParams;
-        newThread.stackFrame.args = paramValues.slice();
-        newThread.stackFrame.customBlockArgs = mergedParams;
-        console.groupCollapsed("THREAD", newThread);
-        console.log("parametersCache", newThread.parametersCache);
-        console.log("procedureParameterNames", newThread.procedureParameterNames);
-        console.log("procedureArguments", newThread.procedureArguments);
-        console.groupEnd();
-        console.log(`[Matterer] Executed "${BLOCK_NAME}"`, {
-            argumentnames,
-            argumentids,
-            paramValues,
-            mergedParams
-        });
+        bridge(args, util);
     }
     GetBlockParamTemplate({ BLOCK_NAME }) {
         var _a, _b, _c, _d, _e;
