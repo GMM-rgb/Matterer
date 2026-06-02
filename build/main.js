@@ -7,720 +7,589 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const ValidScratchTypeDefinitions = ['string', 'number', 'boolean', 'object'];
-class Matterer {
-    constructor() {
-        this._procedureIndex = new Map();
-        this._compiledBridges = new Map();
-        this._menuCacheDirty = true;
-        this._cachedMenuItems = [];
-        this.__currentlyAnimating = new Set();
-        this.scratch = Scratch !== null && Scratch !== void 0 ? Scratch : undefined;
+const ValidScratchTypeDefinitions = [
+    "string", "number", "boolean", "object",
+];
+const MAX_LABEL_LEN = 36;
+function truncateLabel(text, max = MAX_LABEL_LEN) {
+    return text.length <= max ? text : text.slice(0, max - 1) + "…";
+}
+function normalizeBlockName(value) {
+    var _a, _b, _c, _d;
+    if (typeof value === "string")
+        return value;
+    if (value && typeof value === "object") {
+        const o = value;
+        return String((_d = (_c = (_b = (_a = o.value) !== null && _a !== void 0 ? _a : o.text) !== null && _b !== void 0 ? _b : o.proccode) !== null && _c !== void 0 ? _c : o.blockName) !== null && _d !== void 0 ? _d : "");
     }
-    scanCustomBlocks() {
-        var _a, _b, _c, _d, _e, _f, _g;
-        const runtime = (_a = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) === null || _a === void 0 ? void 0 : _a.runtime;
-        if (!(runtime === null || runtime === void 0 ? void 0 : runtime.targets))
+    return String(value !== null && value !== void 0 ? value : "");
+}
+function debounce(fn, ms) {
+    let timer = null;
+    return () => {
+        if (timer !== null)
+            clearTimeout(timer);
+        timer = setTimeout(() => { timer = null; fn(); }, ms);
+    };
+}
+class MattererBundleExecutor {
+    constructor(getRuntime) {
+        this.getRuntime = getRuntime;
+        this.cachedItems = [{ text: "(loading…)", value: "" }];
+        this.rebuilding = false;
+    }
+    installAutoRefresh() {
+        var _a, _b, _c, _d, _e;
+        const vm = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm;
+        const runtime = this.getRuntime();
+        if (!vm || !runtime)
             return;
-        this._procedureIndex.clear();
+        const scheduleRebuild = debounce(() => this.rebuildCache(), 250);
+        (_a = vm.on) === null || _a === void 0 ? void 0 : _a.call(vm, "workspaceUpdate", scheduleRebuild);
+        (_b = vm.on) === null || _b === void 0 ? void 0 : _b.call(vm, "targetsUpdate", scheduleRebuild);
+        (_c = runtime.on) === null || _c === void 0 ? void 0 : _c.call(runtime, "PROJECT_LOADED", scheduleRebuild);
+        (_d = runtime.on) === null || _d === void 0 ? void 0 : _d.call(runtime, "TARGETS_UPDATE", scheduleRebuild);
+        const attachBlockListeners = () => {
+            var _a, _b;
+            for (const target of ((_a = runtime.targets) !== null && _a !== void 0 ? _a : [])) {
+                const bc = target.blocks;
+                if (!bc || bc.__mattererHooked)
+                    continue;
+                bc.__mattererHooked = true;
+                (_b = bc.on) === null || _b === void 0 ? void 0 : _b.call(bc, "BLOCK_DRAG_END", scheduleRebuild);
+            }
+        };
+        (_e = runtime.on) === null || _e === void 0 ? void 0 : _e.call(runtime, "TARGETS_UPDATE", attachBlockListeners);
+        attachBlockListeners();
+        this.rebuildCache();
+        console.debug("[Matterer] Auto-refresh installed (silent mode)");
+    }
+    rebuildCache() {
+        if (this.rebuilding)
+            return;
+        this.rebuilding = true;
+        try {
+            const runtime = this.getRuntime();
+            if (!(runtime === null || runtime === void 0 ? void 0 : runtime.targets))
+                return;
+            const index = this.buildProcedureIndex(runtime);
+            const items = Array.from(index.values())
+                .sort((a, b) => a.proccode.localeCompare(b.proccode))
+                .map((meta) => {
+                let i = 0;
+                const full = meta.proccode.replace(/%[sbn]/g, m => {
+                    var _a;
+                    const name = (_a = meta.argumentNames[i++]) !== null && _a !== void 0 ? _a : "?";
+                    return m === "%b" ? `<${name}>` : m === "%n" ? `(${name})` : `[${name}]`;
+                });
+                return { text: truncateLabel(full), value: meta.proccode };
+            });
+            this.cachedItems = items.length
+                ? items
+                : [{ text: "(no custom blocks yet)", value: "" }];
+            console.debug("[Matterer] Cache rebuilt:", this.cachedItems.length, "items");
+        }
+        finally {
+            this.rebuilding = false;
+        }
+    }
+    getMenuItems() {
+        return this.cachedItems;
+    }
+    forceRebuild() {
+        this.rebuildCache();
+    }
+    getTemplate(blockName) {
+        blockName = normalizeBlockName(blockName);
+        const runtime = this.getRuntime();
+        if (!(runtime === null || runtime === void 0 ? void 0 : runtime.targets))
+            return "NO PARAMETERS";
+        const meta = this.buildProcedureIndex(runtime).get(blockName);
+        if (!meta || meta.argumentNames.length === 0)
+            return "NO PARAMETERS";
+        const tpl = {};
+        meta.argumentNames.forEach((name, i) => { var _a; tpl[name] = (_a = meta.argumentDefaults[i]) !== null && _a !== void 0 ? _a : ""; });
+        return JSON.stringify(tpl);
+    }
+    execute(blockNameRaw, paramsJson, util) {
+        var _a;
+        const blockName = normalizeBlockName(blockNameRaw);
+        if (!blockName.trim()) {
+            console.warn("[Matterer] No block name provided");
+            return;
+        }
+        console.log("[Matterer] execute()", { blockName, paramsJson });
+        let rawArgs = {};
+        const trimmed = paramsJson === null || paramsJson === void 0 ? void 0 : paramsJson.trim();
+        if (trimmed && trimmed !== "{}") {
+            try {
+                rawArgs = JSON.parse(trimmed);
+            }
+            catch (_b) {
+                console.error("[Matterer] Invalid JSON:", paramsJson);
+                return;
+            }
+        }
+        const runtime = (_a = util.runtime) !== null && _a !== void 0 ? _a : this.getRuntime();
+        const index = this.buildProcedureIndex(runtime);
+        const meta = index.get(blockName);
+        if (!meta) {
+            console.warn(`[Matterer] No definition found for: "${blockName}"`);
+            console.log("[Matterer] known:", [...index.keys()]);
+            return;
+        }
+        this.spawnThread(meta, rawArgs, util, runtime);
+    }
+    buildProcedureIndex(runtime) {
+        var _a, _b, _c, _d, _e, _f;
+        const index = new Map();
+        if (!(runtime === null || runtime === void 0 ? void 0 : runtime.targets))
+            return index;
         for (const target of runtime.targets) {
-            const blocks = (_b = target.blocks) === null || _b === void 0 ? void 0 : _b._blocks;
+            const blocks = (_a = target.blocks) === null || _a === void 0 ? void 0 : _a._blocks;
             if (!blocks)
                 continue;
             for (const [blockId, block] of Object.entries(blocks)) {
                 if ((block === null || block === void 0 ? void 0 : block.opcode) !== "procedures_definition")
                     continue;
-                const customBlockInput = (_c = block.inputs) === null || _c === void 0 ? void 0 : _c.custom_block;
-                let protoId = null;
-                if (customBlockInput === null || customBlockInput === void 0 ? void 0 : customBlockInput.block) {
-                    protoId = customBlockInput.block;
-                }
-                else if (Array.isArray(customBlockInput) && customBlockInput.length > 1) {
-                    protoId = customBlockInput[1];
-                }
+                const protoId = this.resolveProtoId((_b = block.inputs) === null || _b === void 0 ? void 0 : _b.custom_block, blocks);
                 if (!protoId)
                     continue;
                 const proto = blocks[protoId];
                 if (!proto || proto.opcode !== "procedures_prototype")
                     continue;
-                const proccode = (_d = proto.mutation) === null || _d === void 0 ? void 0 : _d.proccode;
+                const proccode = (_c = proto.mutation) === null || _c === void 0 ? void 0 : _c.proccode;
                 if (!proccode)
                     continue;
                 let argumentNames = [];
                 let argumentIds = [];
                 let argumentDefaults = [];
                 try {
-                    argumentNames = JSON.parse((_e = proto.mutation.argumentnames) !== null && _e !== void 0 ? _e : "[]");
-                    argumentIds = JSON.parse((_f = proto.mutation.argumentids) !== null && _f !== void 0 ? _f : "[]");
-                    argumentDefaults = JSON.parse((_g = proto.mutation.argumentdefaults) !== null && _g !== void 0 ? _g : "[]");
+                    argumentNames = JSON.parse((_d = proto.mutation.argumentnames) !== null && _d !== void 0 ? _d : "[]");
+                    argumentIds = JSON.parse((_e = proto.mutation.argumentids) !== null && _e !== void 0 ? _e : "[]");
+                    argumentDefaults = JSON.parse((_f = proto.mutation.argumentdefaults) !== null && _f !== void 0 ? _f : "[]");
                 }
-                catch (_h) { }
-                this._procedureIndex.set(proccode, {
+                catch (_g) { }
+                index.set(proccode, {
                     proccode,
                     argumentNames,
                     argumentIds,
                     argumentDefaults,
                     definitionBlockId: blockId,
-                    target
+                    target,
                 });
             }
         }
+        return index;
     }
-    compileBlockBridge(meta) {
-        const bridge = (args, util) => {
-            var _a, _b, _c, _d, _e, _f;
-            const safeValue = (v) => (v === undefined || v === null) ? "" : v;
-            const positionalValues = Object.values(args || {});
-            const paramValues = meta.argumentNames.map((name, i) => {
-                if (Object.prototype.hasOwnProperty.call(args, name)) {
-                    return safeValue(args[name]);
-                }
-                if (i < positionalValues.length && positionalValues[i] !== undefined) {
-                    return safeValue(positionalValues[i]);
-                }
-                return "";
-            });
-            const paramsByName = {};
-            const paramsById = {};
-            const paramsByIndex = {};
-            for (let i = 0; i < paramValues.length; i++) {
-                const value = safeValue(paramValues[i]);
-                if (meta.argumentNames[i] !== undefined) {
-                    paramsByName[meta.argumentNames[i]] = value;
-                    paramsByIndex[String(i)] = value;
-                }
-                if (meta.argumentIds[i] !== undefined) {
-                    paramsById[meta.argumentIds[i]] = value;
-                }
-            }
-            const mergedParams = Object.assign(Object.assign(Object.assign({}, paramsByIndex), paramsByName), paramsById);
-            const runtime = (_a = util.runtime) !== null && _a !== void 0 ? _a : (_b = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) === null || _b === void 0 ? void 0 : _b.runtime;
-            const newThread = runtime === null || runtime === void 0 ? void 0 : runtime._pushThread(meta.definitionBlockId, meta.target);
-            if (!newThread) {
-                console.error("[Matterer] Failed to push thread");
-                return;
-            }
-            newThread.parametersCache = (_c = newThread.parametersCache) !== null && _c !== void 0 ? _c : {};
-            newThread.parametersCache[meta.proccode] = mergedParams;
-            newThread.procedureParameterNames = meta.argumentNames.slice();
-            newThread.procedureParameterIds = meta.argumentIds.slice();
-            newThread.procedureArguments = paramValues.slice();
-            const liveFrame = (_f = (_e = (_d = newThread.compatibilityStackFrame) !== null && _d !== void 0 ? _d : (Array.isArray(newThread.stackFrames) && newThread.stackFrames.length > 0
-                ? newThread.stackFrames[newThread.stackFrames.length - 1]
-                : null)) !== null && _e !== void 0 ? _e : newThread.stackFrame) !== null && _f !== void 0 ? _f : null;
-            if (liveFrame) {
-                liveFrame.params = mergedParams;
-                liveFrame.parameters = mergedParams;
-                liveFrame.reporterValues = mergedParams;
-                liveFrame.customArgs = mergedParams;
-                liveFrame.procedureParameterNames = meta.argumentNames.slice();
-                liveFrame.procedureParameterIds = meta.argumentIds.slice();
-                liveFrame.procedureArguments = paramValues.slice();
-                liveFrame.reported = null;
-                liveFrame.reporting = "";
-            }
-            newThread.compatibilityStackFrame = liveFrame;
-            newThread.stackFrame = liveFrame;
-            if (Array.isArray(newThread.stackFrames) && newThread.stackFrames.length > 0) {
-                newThread.stackFrames[newThread.stackFrames.length - 1] = liveFrame;
-            }
-            else if (liveFrame) {
-                newThread.stackFrames = [liveFrame];
-            }
-            newThread.isCompiled = false;
-            newThread.triedToCompile = false;
-            console.log(`[Matterer] Executed "${meta.proccode}"`, {
-                argumentNames: meta.argumentNames,
-                argumentIds: meta.argumentIds,
-                paramValues,
-                mergedParams
-            });
-        };
-        return bridge;
+    spawnThread(meta, rawArgs, util, runtime) {
+        var _a;
+        const argsArray = [];
+        for (let i = 0; i < meta.argumentNames.length; i++) {
+            const name = meta.argumentNames[i];
+            const id = meta.argumentIds[i];
+            const def = (_a = meta.argumentDefaults[i]) !== null && _a !== void 0 ? _a : "";
+            let val = def;
+            if (rawArgs[id] !== undefined)
+                val = rawArgs[id];
+            else if (rawArgs[name] !== undefined)
+                val = rawArgs[name];
+            else if (rawArgs[String(i)] !== undefined)
+                val = rawArgs[String(i)];
+            argsArray[i] = val;
+        }
+        let thread = util.thread;
+        if (!thread) {
+            thread = runtime.sequencer.createThread(meta.definitionBlockId, meta.target, { stackClick: false, updateMonitor: false });
+        }
+        if (!thread) {
+            console.error("[Matterer] Failed to get/create thread for stepToProcedure");
+            return;
+        }
+        console.log("[Matterer] Calling stepToProcedure with args:", argsArray);
+        try {
+            runtime.sequencer.stepToProcedure(thread, meta.proccode, argsArray);
+            console.log("[Matterer] stepToProcedure executed successfully!");
+        }
+        catch (err) {
+            console.error("[Matterer] stepToProcedure failed:", err);
+            console.log("[Matterer] Falling back to manual thread push...");
+            this.fallbackManualPush(meta, argsArray, util, runtime);
+        }
     }
-    initializeDynamicMenuSystem() {
-        var _a, _b;
-        const vm = Scratch.vm;
-        const runtime = vm.runtime;
-        runtime.ext_Matterer = this;
-        const refreshMenus = () => {
-            this._menuCacheDirty = new Boolean(true).valueOf();
-            console.debug("[Matterer] Menu cache invalidated");
-        };
-        vm.on("workspaceUpdate", refreshMenus);
-        (_a = runtime.on) === null || _a === void 0 ? void 0 : _a.call(runtime, "PROJECT_LOADED", refreshMenus);
-        (_b = runtime.on) === null || _b === void 0 ? void 0 : _b.call(runtime, "TARGETS_UPDATE", refreshMenus);
+    fallbackManualPush(meta, argsArray, util, runtime) {
+        const thread = runtime._pushThread(meta.definitionBlockId, meta.target, { stackClick: false, updateMonitor: false });
+        if (!thread)
+            return;
+        thread.isCompiled = false;
+        thread.triedToCompile = true;
+        thread.procedureArguments = argsArray;
+        thread.procedureParameterNames = meta.argumentNames.slice();
+        thread.procedureParameterIds = meta.argumentIds.slice();
+        const frames = [thread.stackFrame, thread.compatibilityStackFrame].filter(Boolean);
+        for (const frame of frames) {
+            if (!frame)
+                continue;
+            frame.procedureArguments = argsArray;
+            frame.procedureParameterNames = meta.argumentNames.slice();
+            frame.procedureParameterIds = meta.argumentIds.slice();
+            frame.reported = null;
+        }
+        console.log("[Matterer] Fallback manual push executed.");
+    }
+    seedFrames(thread, meta, merged) {
+        var _a;
+        const seen = new Set();
+        const frames = [];
+        if (Array.isArray(thread.stackFrames)) {
+            for (const f of thread.stackFrames) {
+                if (f && !seen.has(f)) {
+                    seen.add(f);
+                    frames.push(f);
+                }
+            }
+        }
+        if (thread.stackFrame && !seen.has(thread.stackFrame)) {
+            seen.add(thread.stackFrame);
+            frames.push(thread.stackFrame);
+        }
+        if (thread.compatibilityStackFrame && !seen.has(thread.compatibilityStackFrame)) {
+            seen.add(thread.compatibilityStackFrame);
+            frames.push(thread.compatibilityStackFrame);
+        }
+        for (const frame of frames) {
+            if (!frame)
+                continue;
+            frame.parametersCache = (_a = frame.parametersCache) !== null && _a !== void 0 ? _a : {};
+            frame.parametersCache[meta.proccode] = merged;
+            frame.params = merged;
+            frame.parameters = merged;
+            frame.procedureParameterNames = meta.argumentNames.slice();
+            frame.procedureParameterIds = meta.argumentIds.slice();
+            frame.procedureArguments = meta.argumentNames.map(n => { var _a; return (_a = merged[n]) !== null && _a !== void 0 ? _a : ""; });
+            frame.reported = null;
+            frame.reporting = "";
+        }
+    }
+    buildParams(meta, args) {
+        const positional = Object.values(args);
+        const out = {};
+        meta.argumentNames.forEach((name, i) => {
+            var _a;
+            const raw = Object.prototype.hasOwnProperty.call(args, name)
+                ? args[name]
+                : i < positional.length
+                    ? positional[i]
+                    : ((_a = meta.argumentDefaults[i]) !== null && _a !== void 0 ? _a : "");
+            const value = raw === undefined || raw === null ? "" : raw;
+            out[name] = value;
+            out[String(i)] = value;
+            if (meta.argumentIds[i])
+                out[meta.argumentIds[i]] = value;
+        });
+        return out;
+    }
+    resolveProtoId(input, blocks) {
+        if (!input)
+            return null;
+        if (Array.isArray(input)) {
+            const a = input[1];
+            if (typeof a === "string" && blocks[a])
+                return a;
+            const b = input[2];
+            if (typeof b === "string" && blocks[b])
+                return b;
+            return null;
+        }
+        if (input.block && blocks[input.block])
+            return input.block;
+        if (input.shadow && blocks[input.shadow])
+            return input.shadow;
+        return null;
+    }
+}
+class Matterer {
+    constructor() {
+        this.executor = new MattererBundleExecutor(() => { var _a; return (_a = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) === null || _a === void 0 ? void 0 : _a.runtime; });
+        this.__animating = new Set();
+        this.scratch = Scratch !== null && Scratch !== void 0 ? Scratch : undefined;
     }
     getActiveSprite(util) {
         var _a, _b, _c, _d, _e;
-        return (_e = (_d = (_a = util === null || util === void 0 ? void 0 : util.target) !== null && _a !== void 0 ? _a : (_c = (_b = Scratch.vm.runtime.sequencer) === null || _b === void 0 ? void 0 : _b.activeThread) === null || _c === void 0 ? void 0 : _c.target) !== null && _d !== void 0 ? _d : Scratch.vm.runtime._editingTarget) !== null && _e !== void 0 ? _e : null;
+        return ((_e = (_d = (_a = util === null || util === void 0 ? void 0 : util.target) !== null && _a !== void 0 ? _a : (_c = (_b = Scratch.vm.runtime.sequencer) === null || _b === void 0 ? void 0 : _b.activeThread) === null || _c === void 0 ? void 0 : _c.target) !== null && _d !== void 0 ? _d : Scratch.vm.runtime._editingTarget) !== null && _e !== void 0 ? _e : null);
     }
     refreshCustomBlockMenu() {
         var _a;
-        this._menuCacheDirty = true;
-        const vm = Scratch.vm;
+        this.executor.forceRebuild();
         try {
-            (_a = vm.refreshWorkspace) === null || _a === void 0 ? void 0 : _a.call(vm);
-            if (vm.emitWorkspaceUpdate) {
+            const vm = Scratch.vm;
+            (_a = vm === null || vm === void 0 ? void 0 : vm.refreshWorkspace) === null || _a === void 0 ? void 0 : _a.call(vm);
+            if (vm === null || vm === void 0 ? void 0 : vm.emitWorkspaceUpdate)
                 vm.emitWorkspaceUpdate();
-            }
-            console.log("[Matterer] Workspace refresh requested");
         }
         catch (e) {
-            console.error(e);
+            console.error("[Matterer] Manual workspace refresh failed:", e);
         }
     }
     ExecuteMyBlock({ BLOCK_NAME, PARAMS_JSON }, util) {
-        const normalizeBlockName = (value) => {
-            var _a, _b, _c, _d;
-            if (typeof value === "string")
-                return value;
-            if (value && typeof value === "object") {
-                return String((_d = (_c = (_b = (_a = value.value) !== null && _a !== void 0 ? _a : value.text) !== null && _b !== void 0 ? _b : value.proccode) !== null && _c !== void 0 ? _c : value.blockName) !== null && _d !== void 0 ? _d : "");
-            }
-            return String(value !== null && value !== void 0 ? value : "");
-        };
-        BLOCK_NAME = normalizeBlockName(BLOCK_NAME);
-        if (!(BLOCK_NAME === null || BLOCK_NAME === void 0 ? void 0 : BLOCK_NAME.trim())) {
-            console.warn("[Matterer] No block name provided");
-            return;
-        }
-        let args = {};
-        if ((PARAMS_JSON === null || PARAMS_JSON === void 0 ? void 0 : PARAMS_JSON.trim()) && PARAMS_JSON.trim() !== "{}") {
-            try {
-                args = JSON.parse(PARAMS_JSON);
-            }
-            catch (e) {
-                console.error("[Matterer] Invalid JSON:", PARAMS_JSON);
-                return;
-            }
-        }
-        this.scanCustomBlocks();
-        const meta = this._procedureIndex.get(BLOCK_NAME);
-        if (!meta) {
-            console.warn(`[Matterer] No definition block found for proccode: "${BLOCK_NAME}"`);
-            return;
-        }
-        let bridge = this._compiledBridges.get(meta.proccode);
-        if (!bridge) {
-            bridge = this.compileBlockBridge(meta);
-            this._compiledBridges.set(meta.proccode, bridge);
-        }
-        bridge(args, util);
+        this.executor.execute(BLOCK_NAME, PARAMS_JSON, util);
     }
     GetBlockParamTemplate({ BLOCK_NAME }) {
-        var _a, _b, _c, _d, _e;
-        if (!(BLOCK_NAME === null || BLOCK_NAME === void 0 ? void 0 : BLOCK_NAME.trim()))
-            return "NO PARAMETERS";
-        const runtime = (_a = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) === null || _a === void 0 ? void 0 : _a.runtime;
-        if (!(runtime === null || runtime === void 0 ? void 0 : runtime.targets))
-            return "NO PARAMETERS";
-        for (const target of runtime.targets) {
-            const blocks = (_b = target.blocks) === null || _b === void 0 ? void 0 : _b._blocks;
-            if (!blocks)
-                continue;
-            for (const block of Object.values(blocks)) {
-                if ((block === null || block === void 0 ? void 0 : block.opcode) !== "procedures_prototype")
-                    continue;
-                if (((_c = block === null || block === void 0 ? void 0 : block.mutation) === null || _c === void 0 ? void 0 : _c.proccode) !== BLOCK_NAME)
-                    continue;
-                let argumentnames = [];
-                let argumentdefaults = [];
-                try {
-                    argumentnames = JSON.parse((_d = block.mutation.argumentnames) !== null && _d !== void 0 ? _d : "[]");
-                    argumentdefaults = JSON.parse((_e = block.mutation.argumentdefaults) !== null && _e !== void 0 ? _e : "[]");
-                }
-                catch (_f) { }
-                if (argumentnames.length === 0)
-                    return "NO PARAMETERS";
-                const template = {};
-                argumentnames.forEach((name, i) => {
-                    var _a;
-                    template[name] = (_a = argumentdefaults[i]) !== null && _a !== void 0 ? _a : "";
-                });
-                return JSON.stringify(template);
-            }
-        }
-        return "NO PARAMETERS";
+        return this.executor.getTemplate(BLOCK_NAME);
     }
     getCustomBlockMenuItems() {
-        var _a, _b, _c, _d;
-        try {
-            const runtime = (_a = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) === null || _a === void 0 ? void 0 : _a.runtime;
-            if (!(runtime === null || runtime === void 0 ? void 0 : runtime.targets)) {
-                return [
-                    {
-                        text: "(runtime not ready)",
-                        value: ""
-                    }
-                ];
-            }
-            const found = new Map();
-            for (const target of runtime.targets) {
-                const blocks = (_b = target.blocks) === null || _b === void 0 ? void 0 : _b._blocks;
-                if (!blocks)
-                    continue;
-                for (const block of Object.values(blocks)) {
-                    if ((block === null || block === void 0 ? void 0 : block.opcode) !== "procedures_prototype") {
-                        continue;
-                    }
-                    const proccode = (_c = block.mutation) === null || _c === void 0 ? void 0 : _c.proccode;
-                    if (!proccode) {
-                        continue;
-                    }
-                    if (found.has(proccode)) {
-                        continue;
-                    }
-                    let names = [];
-                    try {
-                        names = JSON.parse((_d = block.mutation.argumentnames) !== null && _d !== void 0 ? _d : "[]");
-                    }
-                    catch (_e) { }
-                    console.log("[Matterer] Found custom block:", proccode);
-                    found.set(proccode, names);
-                }
-            }
-            if (found.size === 0) {
-                return [
-                    {
-                        text: "(no custom blocks yet)",
-                        value: ""
-                    }
-                ];
-            }
-            const menuItems = Array.from(found.entries())
-                .sort(([a], [b]) => a.localeCompare(b))
-                .map(([proccode, argnames]) => {
-                let argIndex = 0;
-                const text = proccode.replace(/%[sbn]/g, match => {
-                    var _a;
-                    const name = (_a = argnames[argIndex++]) !== null && _a !== void 0 ? _a : "?";
-                    if (match === "%b") {
-                        return `<${name}>`;
-                    }
-                    if (match === "%n") {
-                        return `(${name})`;
-                    }
-                    return `[${name}]`;
-                });
-                return {
-                    text,
-                    value: proccode
-                };
-            });
-            this._cachedMenuItems = menuItems;
-            this._menuCacheDirty = false;
-            return menuItems;
-        }
-        catch (e) {
-            console.error("[Matterer] Menu Error", e);
-            return [
-                {
-                    text: "(error loading blocks)",
-                    value: ""
-                }
-            ];
-        }
-    }
-    _getCustomBlockMenuItems() {
-        return this.getCustomBlockMenuItems();
+        return this.executor.getMenuItems();
     }
     ValidateInputType({ VALUE, TYPE_DEFINITION }) {
         const type = TYPE_DEFINITION.toLowerCase();
-        if (ValidScratchTypeDefinitions.indexOf(type) === -1) {
+        const forced = String(VALUE);
+        if (!ValidScratchTypeDefinitions.includes(type))
             return false;
-        }
-        const forcedString = String(VALUE);
-        const valueLower = forcedString.toLowerCase().trim();
-        if (type === 'boolean') {
-            return valueLower === 'true' || valueLower === 'false';
-        }
-        if (type === 'number') {
-            return !isNaN(parseFloat(forcedString)) && isFinite(Number(forcedString));
-        }
-        if (type === 'string') {
-            return typeof forcedString === 'string';
-        }
-        if (type === 'object') {
-            try {
-                const parsed = JSON.parse(forcedString);
-                return typeof parsed === 'object' && parsed !== null;
+        switch (type) {
+            case "boolean": {
+                const v = forced.toLowerCase().trim();
+                return v === "true" || v === "false";
+            }
+            case "number": return !isNaN(parseFloat(forced)) && isFinite(Number(forced));
+            case "string": return true;
+            case "object": try {
+                const p = JSON.parse(forced);
+                return typeof p === "object" && p !== null;
             }
             catch (_a) {
                 return false;
             }
+            default: return false;
         }
-        return false;
     }
     NewBoolean({ BOOL_VALUE }) {
-        function ConvertRequestedValueToString() {
-            let Converted = null;
-            if (BOOL_VALUE !== undefined && BOOL_VALUE !== null) {
-                Converted = String(BOOL_VALUE).toLowerCase().trim();
-            }
-            return Converted !== null ? Converted : "";
-        }
-        function BooleanInstancer() {
-            return ConvertRequestedValueToString() === 'true';
-        }
-        return BooleanInstancer();
+        return String(BOOL_VALUE !== null && BOOL_VALUE !== void 0 ? BOOL_VALUE : "").toLowerCase().trim() === "true";
     }
-    FetchVisibilityState({}, util) {
-        const sprite = this.getActiveSprite(util);
-        if (sprite === null) {
-            console.warn("Sprite visibility defaulting to false!");
-            return false;
-        }
-        return sprite.visible.valueOf();
+    FetchVisibilityState(_, util) {
+        var _a, _b;
+        return (_b = (_a = this.getActiveSprite(util)) === null || _a === void 0 ? void 0 : _a.visible) !== null && _b !== void 0 ? _b : false;
     }
     FadeTransparency(_a, util_1) {
-        return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE }, util) {
-            var _b, _c, _d, _e;
+        return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE, }, util) {
+            var _b, _c, _d;
             const easings = {
-                linear: (t) => t,
-                easeIn: (t) => t * t,
-                easeOut: (t) => t * (2 - t),
-                easeInOut: (t) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t,
-                bounce: (t) => 1 - Math.abs(Math.cos(t * Math.PI * 2.5)) * (1 - t),
+                linear: t => t,
+                easeIn: t => t * t,
+                easeOut: t => t * (2 - t),
+                easeInOut: t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t,
+                bounce: t => 1 - Math.abs(Math.cos(t * Math.PI * 2.5)) * (1 - t),
             };
-            if (TARGET_TRANSPARENCY !== null && TARGET_TRANSPARENCY >= 0 && TARGET_TRANSPARENCY <= Matterer.MaxTransparency) {
-                const CurrentSprite = this.getActiveSprite(util);
-                const spriteId = (_b = CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.id) !== null && _b !== void 0 ? _b : null;
-                if (spriteId === null)
-                    return;
-                try {
-                    const ScratchRuntime = (_c = util.runtime) !== null && _c !== void 0 ? _c : null;
-                    if (ScratchRuntime === null)
-                        throw new Error("ScratchRuntime is unavailable.");
-                    const CalculatedGhostValueTarget = TARGET_TRANSPARENCY * 100;
-                    const InitialTransparency = (_d = CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.effects.ghost) !== null && _d !== void 0 ? _d : 0;
-                    const StartValue = InitialTransparency;
-                    const EndValue = ANIMATION_DIRECTION === "IN" ? 0 : CalculatedGhostValueTarget;
-                    const TransparencySteps = Math.ceil(TARGET_TRANSPARENCY * ScratchRuntime.frameLoop.framerate);
-                    this.__currentlyAnimating.add(spriteId);
-                    (_e = ScratchRuntime === null || ScratchRuntime === void 0 ? void 0 : ScratchRuntime.startHats("matterer_TrackAnimationStartTrigger")) !== null && _e !== void 0 ? _e : void null;
-                    for (let CurrentTransparencyStep = 0; CurrentTransparencyStep < TransparencySteps; CurrentTransparencyStep++) {
-                        const t = CurrentTransparencyStep / TransparencySteps;
-                        const eased = easings[ANIMATION_STYLE](t);
-                        CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.setEffect("ghost", StartValue + (EndValue - StartValue) * eased);
-                        yield Matterer.waitOneFrame();
-                    }
-                    CurrentSprite === null || CurrentSprite === void 0 ? void 0 : CurrentSprite.setEffect("ghost", EndValue);
+            if (TARGET_TRANSPARENCY == null ||
+                TARGET_TRANSPARENCY < 0 ||
+                TARGET_TRANSPARENCY > Matterer.MaxTransparency)
+                return;
+            const sprite = this.getActiveSprite(util);
+            const spriteId = (_b = sprite === null || sprite === void 0 ? void 0 : sprite.id) !== null && _b !== void 0 ? _b : null;
+            if (!spriteId || !sprite)
+                return;
+            const runtime = (_c = util.runtime) !== null && _c !== void 0 ? _c : null;
+            if (!runtime)
+                throw new Error("[Matterer] Runtime unavailable");
+            const start = (_d = sprite.effects.ghost) !== null && _d !== void 0 ? _d : 0;
+            const end = ANIMATION_DIRECTION === "IN" ? 0 : TARGET_TRANSPARENCY;
+            const steps = Math.ceil(TARGET_TRANSPARENCY * runtime.frameLoop.framerate);
+            try {
+                this.__animating.add(spriteId);
+                runtime.startHats("matterer_TrackAnimationStartTrigger");
+                for (let i = 0; i < steps; i++) {
+                    const eased = easings[ANIMATION_STYLE](i / steps);
+                    sprite.setEffect("ghost", start + (end - start) * eased);
+                    yield Matterer.waitOneFrame();
                 }
-                catch (FadeError) {
-                    if (FadeError != null)
-                        console.error(new String(FadeError).trim());
-                }
-                finally {
-                    this.__currentlyAnimating.delete(spriteId);
-                    util.runtime.startHats("matterer_TrackAnimationEndTrigger");
-                }
+                sprite.setEffect("ghost", end);
+            }
+            catch (err) {
+                if (err != null)
+                    console.error("[Matterer] FadeTransparency:", String(err));
+            }
+            finally {
+                this.__animating.delete(spriteId);
+                runtime.startHats("matterer_TrackAnimationEndTrigger");
             }
         });
     }
-    TrackAnimationStartTrigger(_a, util_1) {
-        return __awaiter(this, arguments, void 0, function* ({}, util) {
+    TrackAnimationStartTrigger(_, _u) {
+        return __awaiter(this, void 0, void 0, function* () {
             yield Matterer.waitOneFrame();
             return true;
         });
     }
-    TrackAnimationEndTrigger(_a, util_1) {
-        return __awaiter(this, arguments, void 0, function* ({}, util) {
+    TrackAnimationEndTrigger(_, _u) {
+        return __awaiter(this, void 0, void 0, function* () {
             yield Matterer.waitOneFrame();
             return true;
         });
     }
     CheckIsAnimatingProperty({ REQUESTED_ANIMATING_STATE_TYPE }, util) {
-        if (REQUESTED_ANIMATING_STATE_TYPE === null)
-            return false;
         const sprite = this.getActiveSprite(util);
-        if (sprite === null)
+        if (!sprite)
             return false;
-        const isAnimating = this.__currentlyAnimating.has(sprite.id);
-        if (REQUESTED_ANIMATING_STATE_TYPE === "animating") {
-            return isAnimating;
-        }
-        else {
-            return !isAnimating;
-        }
-    }
-    ToggleCurrentRunningAnimation(_a, util_1) {
-        return __awaiter(this, arguments, void 0, function* ({ ANIMATION_TOGGLE_STATE }, util) {
-            const AcceptableToggleInputs = ['STOP', 'PAUSE', 'RESUME'];
-            let ExecutedRequestedToggle = false;
-            let InputToggleValid = false;
-            AcceptableToggleInputs.forEach(AcceptableInput => {
-                if (AcceptableInput !== null && typeof (AcceptableInput) === "string") {
-                    if (ANIMATION_TOGGLE_STATE === AcceptableInput.valueOf()) {
-                        InputToggleValid = true;
-                    }
-                }
-            }, { queueMicrotask: true });
-            yield Matterer.waitOneFrame();
-            function CancelAnimation() {
-                try {
-                }
-                catch (ToggleError) {
-                    console.error("Toggle Error Message:\t" + String(ToggleError !== null && ToggleError !== void 0 ? ToggleError : null).trim());
-                }
-                finally {
-                    if (ExecutedRequestedToggle.valueOf() === true) {
-                        return Boolean(true);
-                    }
-                    else {
-                        return Boolean(false);
-                    }
-                }
-            }
-        });
+        const is = this.__animating.has(sprite.id);
+        return REQUESTED_ANIMATING_STATE_TYPE === "animating" ? is : !is;
     }
     LoopUntilAnimationFinished({ INCLUDES_SCREEN_REFRESH }, util) {
         const sprite = this.getActiveSprite(util);
-        if (sprite === null)
+        if (!sprite)
             return;
-        const isAnimating = this.__currentlyAnimating.has(sprite.id);
-        if (isAnimating) {
+        if (this.__animating.has(sprite.id)) {
             (() => __awaiter(this, void 0, void 0, function* () {
                 yield Matterer.waitOneFrame();
                 util.startBranch(1, INCLUDES_SCREEN_REFRESH);
             }))();
         }
     }
+    ToggleCurrentRunningAnimation(_, _u) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield Matterer.waitOneFrame();
+        });
+    }
 }
-Matterer.ValueTypes = [String, Boolean];
-Matterer.waitOneFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
+Matterer.waitOneFrame = () => new Promise(r => requestAnimationFrame(() => r()));
 Matterer.MaxTransparency = 100;
 class MattererDefinitions extends Matterer {
     constructor() {
         super();
         if (this.scratch.extensions.unsandboxed) {
             this.getCustomBlockMenuItems = this.getCustomBlockMenuItems.bind(this);
-            this.initializeDynamicMenuSystem();
-            (() => {
-                console.debug(Scratch.BlockType.LOOP);
-                console.debug(Scratch.BlockType.CONDITIONAL);
-            })();
+            this.executor.installAutoRefresh();
         }
         else {
-            console.warn("Matterer Defines is not running unsandboxed, this can cause problems with interacting with the virtual machine!");
+            console.warn("[Matterer] Not unsandboxed — VM interaction may be limited.");
         }
     }
     getInfo() {
-        const unsandboxed = this.scratch.extensions.unsandboxed;
         return {
             id: "matterer",
-            name: 'Matterer Defines',
-            color1: new String("#f542b0").valueOf(),
-            color2: new String("#c41681").valueOf(),
-            color3: new String("#a500a2").valueOf(),
+            name: "Matterer Defines",
+            color1: "#f542b0",
+            color2: "#c41681",
+            color3: "#a500a2",
             blocks: [
                 {
                     blockType: Scratch.BlockType.BUTTON,
-                    func: new String(function e() { }.name).valueOf().trim(),
-                    text: "🔄️ Reset Default Values"
+                    func: "e",
+                    text: "🔄️ Reset Default Values",
                 },
                 "---",
-                {
-                    blockType: Scratch.BlockType.LABEL,
-                    text: "General Utilities",
-                },
+                { blockType: Scratch.BlockType.LABEL, text: "General Utilities" },
                 {
                     blockType: Scratch.BlockType.BOOLEAN,
-                    opcode: this.ValidateInputType.name.valueOf(),
+                    opcode: "ValidateInputType",
                     text: "is [VALUE] an [TYPE_DEFINITION] ?",
                     arguments: {
-                        VALUE: {
-                            type: Scratch.ArgumentType.STRING,
-                            defaultValue: "Hello Scratch! :D",
-                        },
-                        TYPE_DEFINITION: {
-                            type: Scratch.ArgumentType.STRING,
-                            menu: "typeDefinitionMenu",
-                            defaultValue: 'string',
-                        },
+                        VALUE: { type: Scratch.ArgumentType.STRING, defaultValue: "Hello Scratch! :D" },
+                        TYPE_DEFINITION: { type: Scratch.ArgumentType.STRING, menu: "typeDefinitionMenu", defaultValue: "string" },
                     },
                 },
                 {
                     blockType: Scratch.BlockType.BOOLEAN,
-                    opcode: this.NewBoolean.name.valueOf(),
+                    opcode: "NewBoolean",
                     text: "new bool from [BOOL_VALUE]",
                     arguments: {
-                        BOOL_VALUE: {
-                            type: Scratch.ArgumentType.STRING,
-                            menu: "BooleanPickerMenu",
-                            defaultValue: "TRUE",
-                        }
+                        BOOL_VALUE: { type: Scratch.ArgumentType.STRING, menu: "BooleanPickerMenu", defaultValue: "TRUE" },
                     },
                 },
                 "---",
-                {
-                    blockType: Scratch.BlockType.LABEL,
-                    text: "Animation Utilites",
-                },
+                { blockType: Scratch.BlockType.LABEL, text: "Animation Utilities" },
                 {
                     blockType: Scratch.BlockType.COMMAND,
-                    opcode: this.FadeTransparency.name.valueOf(),
-                    text: "animate transparency to [TARGET_TRANSPARENCY] in direction [ANIMATION_DIRECTION] with animation style [ANIMATION_STYLE]",
+                    opcode: "FadeTransparency",
+                    text: "animate transparency to [TARGET_TRANSPARENCY] [ANIMATION_DIRECTION] with [ANIMATION_STYLE]",
                     arguments: {
-                        TARGET_TRANSPARENCY: {
-                            type: Scratch.ArgumentType.NUMBER,
-                            defaultValue: 1,
-                        },
-                        ANIMATION_DIRECTION: {
-                            type: Scratch.ArgumentType.STRING,
-                            menu: "AnimationDirectionChoice",
-                            defaultValue: "IN",
-                        },
-                        ANIMATION_STYLE: {
-                            type: Scratch.ArgumentType.STRING,
-                            menu: "AnimationStyleChoice",
-                            defaultValue: "linear",
-                        },
+                        TARGET_TRANSPARENCY: { type: Scratch.ArgumentType.NUMBER, defaultValue: 1 },
+                        ANIMATION_DIRECTION: { type: Scratch.ArgumentType.STRING, menu: "AnimationDirectionChoice", defaultValue: "IN" },
+                        ANIMATION_STYLE: { type: Scratch.ArgumentType.STRING, menu: "AnimationStyleChoice", defaultValue: "linear" },
                     },
                 },
                 {
                     blockType: Scratch.BlockType.LOOP,
-                    hideFromPalette: false,
-                    isTerminal: false,
                     branchCount: 1,
-                    opcode: this.LoopUntilAnimationFinished.name.valueOf(),
-                    text: "while animating with screen refresh [INCLUDES_SCREEN_REFRESH] do?",
+                    opcode: "LoopUntilAnimationFinished",
+                    text: "while animating (refresh [INCLUDES_SCREEN_REFRESH]) do",
                     arguments: {
-                        INCLUDES_SCREEN_REFRESH: {
-                            type: Scratch.ArgumentType.BOOLEAN,
-                        }
+                        INCLUDES_SCREEN_REFRESH: { type: Scratch.ArgumentType.BOOLEAN },
                     },
                 },
                 {
                     blockType: Scratch.BlockType.BOOLEAN,
-                    opcode: this.CheckIsAnimatingProperty.name.valueOf(),
+                    opcode: "CheckIsAnimatingProperty",
                     text: "is [REQUESTED_ANIMATING_STATE_TYPE]?",
                     arguments: {
-                        REQUESTED_ANIMATING_STATE_TYPE: {
-                            type: Scratch.ArgumentType.STRING,
-                            menu: "AnimatingStateTypeRequestMenu",
-                            defaultValue: "animating",
-                        },
+                        REQUESTED_ANIMATING_STATE_TYPE: { type: Scratch.ArgumentType.STRING, menu: "AnimatingStateTypeRequestMenu", defaultValue: "animating" },
                     },
                 },
                 "---",
-                {
-                    blockType: Scratch.BlockType.LABEL,
-                    text: "Animation Events",
-                },
+                { blockType: Scratch.BlockType.LABEL, text: "Animation Events" },
                 {
                     blockType: Scratch.BlockType.HAT,
+                    opcode: "TrackAnimationStartTrigger",
                     text: "when animating STARTS",
-                    opcode: this.TrackAnimationStartTrigger.name.valueOf(),
                     shouldRestartExistingThreads: false,
                     isEdgeActivated: false,
                     arguments: {},
                 },
                 {
                     blockType: Scratch.BlockType.HAT,
+                    opcode: "TrackAnimationEndTrigger",
                     text: "when animating ENDS",
-                    opcode: this.TrackAnimationEndTrigger.name.valueOf(),
                     shouldRestartExistingThreads: false,
                     isEdgeActivated: false,
                     arguments: {},
                 },
                 {
-                    hideFromPalette: false,
-                    isEdgeActivated: false,
-                    blockType: Scratch.BlockType.EVENT,
-                    opcode: this.ToggleCurrentRunningAnimation.name.valueOf(),
-                    text: "[ANIMATION_TOGGLE_STATE] the current animation on sprite",
+                    blockType: Scratch.BlockType.COMMAND,
+                    opcode: "ToggleCurrentRunningAnimation",
+                    text: "[ANIMATION_TOGGLE_STATE] current animation",
                     arguments: {
-                        ANIMATION_TOGGLE_STATE: {
-                            type: Scratch.ArgumentType.STRING,
-                            menu: "AnimationControlStateMenu",
-                            defaultValue: "STOP",
-                        },
+                        ANIMATION_TOGGLE_STATE: { type: Scratch.ArgumentType.STRING, menu: "AnimationControlStateMenu", defaultValue: "STOP" },
                     },
                 },
                 "---",
-                {
-                    blockType: Scratch.BlockType.LABEL,
-                    text: "Visual Sensing",
-                },
+                { blockType: Scratch.BlockType.LABEL, text: "Visual Sensing" },
                 {
                     blockType: Scratch.BlockType.BOOLEAN,
-                    opcode: this.FetchVisibilityState.name.valueOf(),
+                    opcode: "FetchVisibilityState",
                     text: "sprite currently visible",
                     arguments: {},
                 },
                 "---",
-                {
-                    blockType: Scratch.BlockType.LABEL,
-                    text: "Custom Block Executor",
-                },
+                { blockType: Scratch.BlockType.LABEL, text: "Custom Block Executor" },
                 {
                     blockType: Scratch.BlockType.BUTTON,
                     text: "🔄 Refresh My Blocks List",
-                    func: "refreshCustomBlockMenu"
+                    func: "refreshCustomBlockMenu",
                 },
                 {
                     blockType: Scratch.BlockType.COMMAND,
                     opcode: "ExecuteMyBlock",
-                    text: "execute my block [BLOCK_NAME] with [PARAMS_JSON]",
+                    text: "execute [BLOCK_NAME] with [PARAMS_JSON]",
                     arguments: {
-                        BLOCK_NAME: {
-                            type: Scratch.ArgumentType.STRING,
-                            menu: "customBlockMenu",
-                            defaultValue: ""
-                        },
-                        PARAMS_JSON: {
-                            type: Scratch.ArgumentType.STRING,
-                            defaultValue: "{}"
-                        }
-                    }
+                        BLOCK_NAME: { type: Scratch.ArgumentType.STRING, menu: "customBlockMenu", defaultValue: "" },
+                        PARAMS_JSON: { type: Scratch.ArgumentType.STRING, defaultValue: "{}" },
+                    },
                 },
                 {
                     blockType: Scratch.BlockType.REPORTER,
                     opcode: "GetBlockParamTemplate",
                     text: "param template for [BLOCK_NAME]",
                     arguments: {
-                        BLOCK_NAME: {
-                            type: Scratch.ArgumentType.STRING,
-                            menu: "customBlockMenu",
-                            defaultValue: ""
-                        }
-                    }
+                        BLOCK_NAME: { type: Scratch.ArgumentType.STRING, menu: "customBlockMenu", defaultValue: "" },
+                    },
                 },
             ],
             menus: {
-                typeDefinitionMenu: {
-                    items: new Array('string', 'number', 'boolean', 'object'),
-                    acceptReporters: true,
-                },
-                BooleanPickerMenu: {
-                    items: new Array('TRUE', 'FALSE'),
-                    acceptReporters: true,
-                },
-                ValueTypeSwitchMenu: {
-                    items: new Array('reporter', 'bool'),
-                    acceptReporters: false,
-                },
-                AnimationDirectionChoice: {
-                    items: new Array('IN', 'OUT'),
-                    acceptReporters: true,
-                },
-                AnimationStyleChoice: {
-                    items: new Array('linear', 'easeIn', 'easeOut', 'easeInOut', 'bounce'),
-                    acceptReporters: false,
-                },
-                AnimatingStateTypeRequestMenu: {
-                    items: new Array('animating', 'not animating'),
-                    acceptReporters: true,
-                },
-                AnimationControlStateMenu: {
-                    items: new Array('STOP', 'PAUSE', 'RESUME'),
-                    acceptReporters: false,
-                },
-                customBlockMenu: {
-                    acceptReporters: true,
-                    items: "_getCustomBlockMenuItems"
-                },
+                typeDefinitionMenu: { items: ["string", "number", "boolean", "object"], acceptReporters: true },
+                BooleanPickerMenu: { items: ["TRUE", "FALSE"], acceptReporters: true },
+                AnimationDirectionChoice: { items: ["IN", "OUT"], acceptReporters: true },
+                AnimationStyleChoice: { items: ["linear", "easeIn", "easeOut", "easeInOut", "bounce"], acceptReporters: false },
+                AnimatingStateTypeRequestMenu: { items: ["animating", "not animating"], acceptReporters: true },
+                AnimationControlStateMenu: { items: ["STOP", "PAUSE", "RESUME"], acceptReporters: false },
+                customBlockMenu: { acceptReporters: true, items: "getCustomBlockMenuItems" },
             },
         };
     }
