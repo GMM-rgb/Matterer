@@ -24,89 +24,95 @@ function normalizeBlockName(value) {
     }
     return String(value !== null && value !== void 0 ? value : "");
 }
-function debounce(fn, ms) {
-    let timer = null;
-    return () => {
-        if (timer !== null)
-            clearTimeout(timer);
-        timer = setTimeout(() => { timer = null; fn(); }, ms);
-    };
-}
 class MattererBundleExecutor {
     constructor(getRuntime) {
         this.getRuntime = getRuntime;
-        this.cachedItems = [{ text: "(loading…)", value: "" }];
-        this.rebuilding = false;
+        this.explicitResetCounter = 0;
     }
     installAutoRefresh() {
-        var _a, _b, _c, _d, _e;
-        const vm = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm;
-        const runtime = this.getRuntime();
-        if (!vm || !runtime)
-            return;
-        const scheduleRebuild = debounce(() => this.rebuildCache(), 250);
-        (_a = vm.on) === null || _a === void 0 ? void 0 : _a.call(vm, "workspaceUpdate", scheduleRebuild);
-        (_b = vm.on) === null || _b === void 0 ? void 0 : _b.call(vm, "targetsUpdate", scheduleRebuild);
-        (_c = runtime.on) === null || _c === void 0 ? void 0 : _c.call(runtime, "PROJECT_LOADED", scheduleRebuild);
-        (_d = runtime.on) === null || _d === void 0 ? void 0 : _d.call(runtime, "TARGETS_UPDATE", scheduleRebuild);
-        const attachBlockListeners = () => {
-            var _a, _b;
-            for (const target of ((_a = runtime.targets) !== null && _a !== void 0 ? _a : [])) {
-                const bc = target.blocks;
-                if (!bc || bc.__mattererHooked)
-                    continue;
-                bc.__mattererHooked = true;
-                (_b = bc.on) === null || _b === void 0 ? void 0 : _b.call(bc, "BLOCK_DRAG_END", scheduleRebuild);
-            }
-        };
-        (_e = runtime.on) === null || _e === void 0 ? void 0 : _e.call(runtime, "TARGETS_UPDATE", attachBlockListeners);
-        attachBlockListeners();
-        this.rebuildCache();
-        console.debug("[Matterer] Auto-refresh installed (silent mode)");
-    }
-    rebuildCache() {
-        if (this.rebuilding)
-            return;
-        this.rebuilding = true;
-        try {
-            const runtime = this.getRuntime();
-            if (!(runtime === null || runtime === void 0 ? void 0 : runtime.targets))
-                return;
-            const index = this.buildProcedureIndex(runtime);
-            const items = Array.from(index.values())
-                .sort((a, b) => a.proccode.localeCompare(b.proccode))
-                .map((meta) => {
-                let i = 0;
-                const full = meta.proccode.replace(/%[sbn]/g, m => {
-                    var _a;
-                    const name = (_a = meta.argumentNames[i++]) !== null && _a !== void 0 ? _a : "?";
-                    return m === "%b" ? `<${name}>` : m === "%n" ? `(${name})` : `[${name}]`;
-                });
-                return { text: truncateLabel(full), value: meta.proccode };
-            });
-            this.cachedItems = items.length
-                ? items
-                : [{ text: "(no custom blocks yet)", value: "" }];
-            console.debug("[Matterer] Cache rebuilt:", this.cachedItems.length, "items");
-        }
-        finally {
-            this.rebuilding = false;
-        }
-    }
-    getMenuItems() {
-        return this.cachedItems;
+        console.log("[Matterer Debug] Auto-refresh subsystem registered.");
     }
     forceRebuild() {
-        this.rebuildCache();
+        this.explicitResetCounter++;
+        console.warn(`[Matterer Diagnostics] 🔄 Hard rebuild forced manually! (Trigger count: ${this.explicitResetCounter})`);
+    }
+    getMenuItems() {
+        console.debug("[Matterer Diagnostics] Dropdown menu opened. Querying live VM targets...");
+        const runtime = this.getRuntime();
+        if (!(runtime === null || runtime === void 0 ? void 0 : runtime.targets)) {
+            console.warn("[Matterer Diagnostics] No VM targets discovered during menu query.");
+            return [{ text: "(no custom blocks yet)", value: "" }];
+        }
+        const index = this.buildProcedureIndex(runtime);
+        console.debug(`[Matterer Diagnostics] Found ${index.size} custom definitions in the project.`);
+        const items = Array.from(index.values())
+            .sort((a, b) => a.proccode.localeCompare(b.proccode))
+            .map((meta) => {
+            let i = 0;
+            const full = meta.proccode.replace(/%[sbn]/g, m => {
+                var _a;
+                const name = (_a = meta.argumentNames[i++]) !== null && _a !== void 0 ? _a : "?";
+                return m === "%b" ? `<${name}>` : m === "%n" ? `(${name})` : `[${name}]`;
+            });
+            return { text: truncateLabel(full), value: meta.proccode };
+        });
+        return items.length ? items : [{ text: "(no custom blocks yet)", value: "" }];
+    }
+    manageLiveParameter(paramName, newValue = null, util) {
+        var _a, _b;
+        const thread = (_a = util.sequencer) === null || _a === void 0 ? void 0 : _a.activeThread;
+        if (!thread)
+            return "NO_THREAD";
+        const currentFrame = thread.stackFrame;
+        if (!currentFrame || !currentFrame.params)
+            return "NO_PARAMS";
+        const procedureCode = thread.targetProcedure;
+        const runtime = thread.runtime || this.getRuntime();
+        const procDefinition = (_b = runtime === null || runtime === void 0 ? void 0 : runtime.getProcedureDefinition) === null || _b === void 0 ? void 0 : _b.call(runtime, procedureCode);
+        let targetKey = null;
+        if (procDefinition && Array.isArray(procDefinition.paramNames)) {
+            for (let i = 0; i < procDefinition.paramNames.length; i++) {
+                if (procDefinition.paramNames[i] === paramName) {
+                    const frameKeys = Object.keys(currentFrame.params);
+                    if (frameKeys[i]) {
+                        targetKey = frameKeys[i];
+                        break;
+                    }
+                }
+            }
+        }
+        if (!targetKey && currentFrame.params[paramName] !== undefined) {
+            targetKey = paramName;
+        }
+        if (targetKey) {
+            if (newValue !== null) {
+                const currentVal = currentFrame.params[targetKey];
+                if (typeof currentVal === 'function') {
+                    currentFrame.params[targetKey] = () => newValue;
+                }
+                else {
+                    currentFrame.params[targetKey] = newValue;
+                }
+                return newValue;
+            }
+            else {
+                const rawParam = currentFrame.params[targetKey];
+                return typeof rawParam === 'function' ? rawParam() : rawParam;
+            }
+        }
+        return 0;
     }
     getTemplate(blockName) {
         blockName = normalizeBlockName(blockName);
+        console.log(`[Matterer Debug] Requesting template structure for block: "${blockName}"`);
         const runtime = this.getRuntime();
         if (!(runtime === null || runtime === void 0 ? void 0 : runtime.targets))
             return "NO PARAMETERS";
         const meta = this.buildProcedureIndex(runtime).get(blockName);
-        if (!meta || meta.argumentNames.length === 0)
+        if (!meta || meta.argumentNames.length === 0) {
+            console.info(`[Matterer Debug] Block "${blockName}" contains zero custom arguments.`);
             return "NO PARAMETERS";
+        }
         const tpl = {};
         meta.argumentNames.forEach((name, i) => { var _a; tpl[name] = (_a = meta.argumentDefaults[i]) !== null && _a !== void 0 ? _a : ""; });
         return JSON.stringify(tpl);
@@ -114,31 +120,41 @@ class MattererBundleExecutor {
     execute(blockNameRaw, paramsJson, util) {
         var _a;
         const blockName = normalizeBlockName(blockNameRaw);
+        console.groupCollapsed(`[Matterer Execution] Invoking Block: "${blockName}"`);
+        console.log(`[Raw Payload]:`, paramsJson);
         if (!blockName.trim()) {
-            console.warn("[Matterer] No block name provided");
+            console.error("[Matterer Error] Aborting execution: Target block name is blank.");
+            console.groupEnd();
             return;
         }
-        console.log("[Matterer] execute()", { blockName, paramsJson });
-        let rawArgs = {};
+        let parsedArgs = [];
         const trimmed = paramsJson === null || paramsJson === void 0 ? void 0 : paramsJson.trim();
-        if (trimmed && trimmed !== "{}") {
+        if (trimmed && trimmed !== "{}" && trimmed !== "[]") {
             try {
-                rawArgs = JSON.parse(trimmed);
+                parsedArgs = JSON.parse(trimmed);
+                console.log("[Parsed Data Match]: Successfully resolved JSON payload structure.", parsedArgs);
+                if (typeof parsedArgs !== "object" || parsedArgs === null) {
+                    parsedArgs = [parsedArgs];
+                }
             }
-            catch (_b) {
-                console.error("[Matterer] Invalid JSON:", paramsJson);
-                return;
+            catch (jsonErr) {
+                console.warn(`[Matterer JSON Warning] Payload parsing failed. Treating as literal input string. Error:`, jsonErr);
+                parsedArgs = [trimmed];
             }
+        }
+        else {
+            console.log("[Parsed Data Match]: Payload is empty/default object.");
         }
         const runtime = (_a = util.runtime) !== null && _a !== void 0 ? _a : this.getRuntime();
         const index = this.buildProcedureIndex(runtime);
         const meta = index.get(blockName);
         if (!meta) {
-            console.warn(`[Matterer] No definition found for: "${blockName}"`);
-            console.log("[Matterer] known:", [...index.keys()]);
+            console.error(`[Matterer Fatal Error] Execution failed. No custom block matching definition: "${blockName}" exists.`);
+            console.groupEnd();
             return;
         }
-        this.spawnThread(meta, rawArgs, util, runtime);
+        this.spawnThread(meta, parsedArgs, util, runtime);
+        console.groupEnd();
     }
     buildProcedureIndex(runtime) {
         var _a, _b, _c, _d, _e, _f;
@@ -182,112 +198,45 @@ class MattererBundleExecutor {
         }
         return index;
     }
-    spawnThread(meta, rawArgs, util, runtime) {
-        var _a;
-        const argsArray = [];
-        for (let i = 0; i < meta.argumentNames.length; i++) {
-            const name = meta.argumentNames[i];
-            const id = meta.argumentIds[i];
-            const def = (_a = meta.argumentDefaults[i]) !== null && _a !== void 0 ? _a : "";
-            let val = def;
-            if (rawArgs[id] !== undefined)
-                val = rawArgs[id];
-            else if (rawArgs[name] !== undefined)
-                val = rawArgs[name];
-            else if (rawArgs[String(i)] !== undefined)
-                val = rawArgs[String(i)];
-            argsArray[i] = val;
-        }
-        let thread = util.thread;
-        if (!thread) {
-            thread = runtime.sequencer.createThread(meta.definitionBlockId, meta.target, { stackClick: false, updateMonitor: false });
-        }
-        if (!thread) {
-            console.error("[Matterer] Failed to get/create thread for stepToProcedure");
-            return;
-        }
-        console.log("[Matterer] Calling stepToProcedure with args:", argsArray);
-        try {
-            runtime.sequencer.stepToProcedure(thread, meta.proccode, argsArray);
-            console.log("[Matterer] stepToProcedure executed successfully!");
-        }
-        catch (err) {
-            console.error("[Matterer] stepToProcedure failed:", err);
-            console.log("[Matterer] Falling back to manual thread push...");
-            this.fallbackManualPush(meta, argsArray, util, runtime);
-        }
-    }
-    fallbackManualPush(meta, argsArray, util, runtime) {
+    spawnThread(meta, parsedArgs, util, runtime) {
+        const mergedParams = {};
+        const isArray = Array.isArray(parsedArgs);
+        console.log(`[Parameter Binding] Aligning properties to block recipe variables:`, meta.argumentNames);
+        meta.argumentNames.forEach((name, i) => {
+            var _a, _b, _c;
+            let val;
+            if (isArray) {
+                val = i < parsedArgs.length ? parsedArgs[i] : (_a = meta.argumentDefaults[i]) !== null && _a !== void 0 ? _a : "";
+            }
+            else {
+                val = Object.prototype.hasOwnProperty.call(parsedArgs, name)
+                    ? parsedArgs[name]
+                    : (_b = meta.argumentDefaults[i]) !== null && _b !== void 0 ? _b : "";
+            }
+            mergedParams[name] = val;
+            if (meta.argumentIds[i]) {
+                mergedParams[meta.argumentIds[i]] = val;
+            }
+            console.log(`  -> Property [${name}] (ID: ${(_c = meta.argumentIds[i]) !== null && _c !== void 0 ? _c : "N/A"}) wrapped to value:`, val);
+        });
         const thread = runtime._pushThread(meta.definitionBlockId, meta.target, { stackClick: false, updateMonitor: false });
-        if (!thread)
+        if (!thread) {
+            console.error("[Matterer Runtime Error] Scratch sequencer refused block injection thread creation.");
             return;
+        }
         thread.isCompiled = false;
         thread.triedToCompile = true;
-        thread.procedureArguments = argsArray;
+        thread.parametersCache = thread.parametersCache || {};
+        thread.parametersCache[meta.proccode] = mergedParams;
         thread.procedureParameterNames = meta.argumentNames.slice();
         thread.procedureParameterIds = meta.argumentIds.slice();
-        const frames = [thread.stackFrame, thread.compatibilityStackFrame].filter(Boolean);
-        for (const frame of frames) {
-            if (!frame)
-                continue;
-            frame.procedureArguments = argsArray;
-            frame.procedureParameterNames = meta.argumentNames.slice();
-            frame.procedureParameterIds = meta.argumentIds.slice();
-            frame.reported = null;
+        thread.procedureArguments = meta.argumentNames.map(n => { var _a; return (_a = mergedParams[n]) !== null && _a !== void 0 ? _a : ""; });
+        if (thread.stackFrame) {
+            thread.stackFrame.params = mergedParams;
+            thread.stackFrame.parametersCache = thread.stackFrame.parametersCache || {};
+            thread.stackFrame.parametersCache[meta.proccode] = mergedParams;
         }
-        console.log("[Matterer] Fallback manual push executed.");
-    }
-    seedFrames(thread, meta, merged) {
-        var _a;
-        const seen = new Set();
-        const frames = [];
-        if (Array.isArray(thread.stackFrames)) {
-            for (const f of thread.stackFrames) {
-                if (f && !seen.has(f)) {
-                    seen.add(f);
-                    frames.push(f);
-                }
-            }
-        }
-        if (thread.stackFrame && !seen.has(thread.stackFrame)) {
-            seen.add(thread.stackFrame);
-            frames.push(thread.stackFrame);
-        }
-        if (thread.compatibilityStackFrame && !seen.has(thread.compatibilityStackFrame)) {
-            seen.add(thread.compatibilityStackFrame);
-            frames.push(thread.compatibilityStackFrame);
-        }
-        for (const frame of frames) {
-            if (!frame)
-                continue;
-            frame.parametersCache = (_a = frame.parametersCache) !== null && _a !== void 0 ? _a : {};
-            frame.parametersCache[meta.proccode] = merged;
-            frame.params = merged;
-            frame.parameters = merged;
-            frame.procedureParameterNames = meta.argumentNames.slice();
-            frame.procedureParameterIds = meta.argumentIds.slice();
-            frame.procedureArguments = meta.argumentNames.map(n => { var _a; return (_a = merged[n]) !== null && _a !== void 0 ? _a : ""; });
-            frame.reported = null;
-            frame.reporting = "";
-        }
-    }
-    buildParams(meta, args) {
-        const positional = Object.values(args);
-        const out = {};
-        meta.argumentNames.forEach((name, i) => {
-            var _a;
-            const raw = Object.prototype.hasOwnProperty.call(args, name)
-                ? args[name]
-                : i < positional.length
-                    ? positional[i]
-                    : ((_a = meta.argumentDefaults[i]) !== null && _a !== void 0 ? _a : "");
-            const value = raw === undefined || raw === null ? "" : raw;
-            out[name] = value;
-            out[String(i)] = value;
-            if (meta.argumentIds[i])
-                out[meta.argumentIds[i]] = value;
-        });
-        return out;
+        console.info(`[Thread Dispatch] Thread dispatched successfully. Block definition runtime linked via ${meta.definitionBlockId}.`);
     }
     resolveProtoId(input, blocks) {
         if (!input)
@@ -311,7 +260,7 @@ class MattererBundleExecutor {
 class Matterer {
     constructor() {
         this.executor = new MattererBundleExecutor(() => { var _a; return (_a = Scratch === null || Scratch === void 0 ? void 0 : Scratch.vm) === null || _a === void 0 ? void 0 : _a.runtime; });
-        this.__animating = new Set();
+        this.__animatingTimers = new Map();
         this.scratch = Scratch !== null && Scratch !== void 0 ? Scratch : undefined;
     }
     getActiveSprite(util) {
@@ -319,16 +268,23 @@ class Matterer {
         return ((_e = (_d = (_a = util === null || util === void 0 ? void 0 : util.target) !== null && _a !== void 0 ? _a : (_c = (_b = Scratch.vm.runtime.sequencer) === null || _b === void 0 ? void 0 : _b.activeThread) === null || _c === void 0 ? void 0 : _c.target) !== null && _d !== void 0 ? _d : Scratch.vm.runtime._editingTarget) !== null && _e !== void 0 ? _e : null);
     }
     refreshCustomBlockMenu() {
-        var _a;
+        console.log("[Manual Reset] User requested an emergency pipeline synchronization...");
         this.executor.forceRebuild();
         try {
             const vm = Scratch.vm;
-            (_a = vm === null || vm === void 0 ? void 0 : vm.refreshWorkspace) === null || _a === void 0 ? void 0 : _a.call(vm);
-            if (vm === null || vm === void 0 ? void 0 : vm.emitWorkspaceUpdate)
-                vm.emitWorkspaceUpdate();
+            if (vm) {
+                if (typeof vm.refreshWorkspace === "function")
+                    vm.refreshWorkspace();
+                if (typeof vm.emitWorkspaceUpdate === "function")
+                    vm.emitWorkspaceUpdate();
+                console.log("[Manual Reset] GUI engine components successfully signaled.");
+            }
+            else {
+                console.warn("[Manual Reset Warning] Scratch VM instance inaccessible for visual updates.");
+            }
         }
         catch (e) {
-            console.error("[Matterer] Manual workspace refresh failed:", e);
+            console.error("[Manual Reset Error] Emergency workspace synchronization pipeline failed:", e);
         }
     }
     ExecuteMyBlock({ BLOCK_NAME, PARAMS_JSON }, util) {
@@ -339,6 +295,12 @@ class Matterer {
     }
     getCustomBlockMenuItems() {
         return this.executor.getMenuItems();
+    }
+    getParamValueBlock(args, util) {
+        return this.executor.manageLiveParameter(args.NAME, null, util);
+    }
+    setParamValueBlock(args, util) {
+        return this.executor.manageLiveParameter(args.NAME, args.VALUE, util);
     }
     ValidateInputType({ VALUE, TYPE_DEFINITION }) {
         const type = TYPE_DEFINITION.toLowerCase();
@@ -369,84 +331,89 @@ class Matterer {
         var _a, _b;
         return (_b = (_a = this.getActiveSprite(util)) === null || _a === void 0 ? void 0 : _a.visible) !== null && _b !== void 0 ? _b : false;
     }
-    FadeTransparency(_a, util_1) {
-        return __awaiter(this, arguments, void 0, function* ({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE, }, util) {
-            var _b, _c, _d;
-            const easings = {
-                linear: t => t,
-                easeIn: t => t * t,
-                easeOut: t => t * (2 - t),
-                easeInOut: t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t,
-                bounce: t => 1 - Math.abs(Math.cos(t * Math.PI * 2.5)) * (1 - t),
-            };
-            if (TARGET_TRANSPARENCY == null ||
-                TARGET_TRANSPARENCY < 0 ||
-                TARGET_TRANSPARENCY > Matterer.MaxTransparency)
-                return;
-            const sprite = this.getActiveSprite(util);
-            const spriteId = (_b = sprite === null || sprite === void 0 ? void 0 : sprite.id) !== null && _b !== void 0 ? _b : null;
-            if (!spriteId || !sprite)
-                return;
-            const runtime = (_c = util.runtime) !== null && _c !== void 0 ? _c : null;
-            if (!runtime)
-                throw new Error("[Matterer] Runtime unavailable");
-            const start = (_d = sprite.effects.ghost) !== null && _d !== void 0 ? _d : 0;
-            const end = ANIMATION_DIRECTION === "IN" ? 0 : TARGET_TRANSPARENCY;
-            const steps = Math.ceil(TARGET_TRANSPARENCY * runtime.frameLoop.framerate);
-            try {
-                this.__animating.add(spriteId);
-                runtime.startHats("matterer_TrackAnimationStartTrigger");
-                for (let i = 0; i < steps; i++) {
-                    const eased = easings[ANIMATION_STYLE](i / steps);
-                    sprite.setEffect("ghost", start + (end - start) * eased);
-                    yield Matterer.waitOneFrame();
-                }
-                sprite.setEffect("ghost", end);
-            }
-            catch (err) {
-                if (err != null)
-                    console.error("[Matterer] FadeTransparency:", String(err));
-            }
-            finally {
-                this.__animating.delete(spriteId);
-                runtime.startHats("matterer_TrackAnimationEndTrigger");
-            }
+    FadeTransparency({ TARGET_TRANSPARENCY, ANIMATION_DIRECTION, ANIMATION_STYLE, }, util) {
+        var _a, _b;
+        if (TARGET_TRANSPARENCY == null || TARGET_TRANSPARENCY < 0 || TARGET_TRANSPARENCY > Matterer.MaxTransparency)
+            return;
+        const sprite = this.getActiveSprite(util);
+        if (!sprite)
+            return;
+        const spriteId = sprite.id;
+        const runtime = Scratch.vm.runtime;
+        const currentFPS = runtime.currentStepTime ? (1000 / runtime.currentStepTime) : 30;
+        const animationDurationMs = (TARGET_TRANSPARENCY / currentFPS) * 1000;
+        const startGhost = (_b = (_a = sprite.effects) === null || _a === void 0 ? void 0 : _a.ghost) !== null && _b !== void 0 ? _b : 0;
+        const endGhost = ANIMATION_DIRECTION === "IN" ? 0 : TARGET_TRANSPARENCY;
+        this.__animatingTimers.set(spriteId, {
+            start: Date.now(),
+            duration: Math.max(animationDurationMs, 50),
+            startGhost,
+            endGhost,
+            style: ANIMATION_STYLE
         });
+        runtime.startHats("matterer_TrackAnimationStartTrigger");
     }
     TrackAnimationStartTrigger(_, _u) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield Matterer.waitOneFrame();
-            return true;
-        });
+        return true;
     }
     TrackAnimationEndTrigger(_, _u) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield Matterer.waitOneFrame();
-            return true;
-        });
+        return true;
     }
-    CheckIsAnimatingProperty({ REQUESTED_ANIMATING_STATE_TYPE }, util) {
+    checkIsAnimatingProperty({ REQUESTED_ANIMATING_STATE_TYPE }, util) {
         const sprite = this.getActiveSprite(util);
         if (!sprite)
             return false;
-        const is = this.__animating.has(sprite.id);
+        this._updateAnimationTickerForSprite(sprite);
+        const is = this.__animatingTimers.has(sprite.id);
         return REQUESTED_ANIMATING_STATE_TYPE === "animating" ? is : !is;
     }
     LoopUntilAnimationFinished({ INCLUDES_SCREEN_REFRESH }, util) {
         const sprite = this.getActiveSprite(util);
         if (!sprite)
             return;
-        if (this.__animating.has(sprite.id)) {
-            (() => __awaiter(this, void 0, void 0, function* () {
-                yield Matterer.waitOneFrame();
-                util.startBranch(1, INCLUDES_SCREEN_REFRESH);
-            }))();
+        const animating = this._updateAnimationTickerForSprite(sprite);
+        if (animating) {
+            util.startBranch(1, INCLUDES_SCREEN_REFRESH);
         }
     }
-    ToggleCurrentRunningAnimation(_, _u) {
+    ToggleCurrentRunningAnimation(args, util) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield Matterer.waitOneFrame();
+            const sprite = this.getActiveSprite(util);
+            if (!sprite)
+                return;
+            if (args.ANIMATION_TOGGLE_STATE === "STOP") {
+                this.__animatingTimers.delete(sprite.id);
+                Scratch.vm.runtime.startHats("matterer_TrackAnimationEndTrigger");
+            }
         });
+    }
+    _updateAnimationTickerForSprite(sprite) {
+        if (!sprite || !this.__animatingTimers.has(sprite.id))
+            return false;
+        const anim = this.__animatingTimers.get(sprite.id);
+        const elapsed = Date.now() - anim.start;
+        const progress = Math.min(elapsed / anim.duration, 1);
+        const easings = {
+            linear: t => t,
+            easeIn: t => t * t,
+            easeOut: t => t * (2 - t),
+            easeInOut: t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t,
+            bounce: t => 1 - Math.abs(Math.cos(t * Math.PI * 2.5)) * (1 - t),
+        };
+        const easedProgress = easings[anim.style](progress);
+        const nextGhostValue = anim.startGhost + (anim.endGhost - anim.startGhost) * easedProgress;
+        if (typeof sprite.setEffect === "function") {
+            sprite.setEffect("ghost", nextGhostValue);
+        }
+        else if (sprite.effects) {
+            sprite.effects.ghost = nextGhostValue;
+        }
+        if (progress >= 1) {
+            this.__animatingTimers.delete(sprite.id);
+            Scratch.vm.runtime.startHats("matterer_TrackAnimationEndTrigger");
+            return false;
+        }
+        return true;
     }
 }
 Matterer.waitOneFrame = () => new Promise(r => requestAnimationFrame(() => r()));
@@ -459,7 +426,7 @@ class MattererDefinitions extends Matterer {
             this.executor.installAutoRefresh();
         }
         else {
-            console.warn("[Matterer] Not unsandboxed — VM interaction may be limited.");
+            console.warn("[Matterer] Warning: Extension running in sandboxed environment.");
         }
     }
     getInfo() {
@@ -472,8 +439,8 @@ class MattererDefinitions extends Matterer {
             blocks: [
                 {
                     blockType: Scratch.BlockType.BUTTON,
-                    func: "e",
-                    text: "🔄️ Reset Default Values",
+                    func: "refreshCustomBlockMenu",
+                    text: "🔄️ Force Sync Workspace Data",
                 },
                 "---",
                 { blockType: Scratch.BlockType.LABEL, text: "General Utilities" },
@@ -501,8 +468,8 @@ class MattererDefinitions extends Matterer {
                     opcode: "FadeTransparency",
                     text: "animate transparency to [TARGET_TRANSPARENCY] [ANIMATION_DIRECTION] with [ANIMATION_STYLE]",
                     arguments: {
-                        TARGET_TRANSPARENCY: { type: Scratch.ArgumentType.NUMBER, defaultValue: 1 },
-                        ANIMATION_DIRECTION: { type: Scratch.ArgumentType.STRING, menu: "AnimationDirectionChoice", defaultValue: "IN" },
+                        TARGET_TRANSPARENCY: { type: Scratch.ArgumentType.NUMBER, defaultValue: 100 },
+                        ANIMATION_DIRECTION: { type: Scratch.ArgumentType.STRING, menu: "AnimationDirectionChoice", defaultValue: "OUT" },
                         ANIMATION_STYLE: { type: Scratch.ArgumentType.STRING, menu: "AnimationStyleChoice", defaultValue: "linear" },
                     },
                 },
@@ -517,7 +484,7 @@ class MattererDefinitions extends Matterer {
                 },
                 {
                     blockType: Scratch.BlockType.BOOLEAN,
-                    opcode: "CheckIsAnimatingProperty",
+                    opcode: "checkIsAnimatingProperty",
                     text: "is [REQUESTED_ANIMATING_STATE_TYPE]?",
                     arguments: {
                         REQUESTED_ANIMATING_STATE_TYPE: { type: Scratch.ArgumentType.STRING, menu: "AnimatingStateTypeRequestMenu", defaultValue: "animating" },
@@ -529,16 +496,12 @@ class MattererDefinitions extends Matterer {
                     blockType: Scratch.BlockType.HAT,
                     opcode: "TrackAnimationStartTrigger",
                     text: "when animating STARTS",
-                    shouldRestartExistingThreads: false,
-                    isEdgeActivated: false,
                     arguments: {},
                 },
                 {
                     blockType: Scratch.BlockType.HAT,
                     opcode: "TrackAnimationEndTrigger",
                     text: "when animating ENDS",
-                    shouldRestartExistingThreads: false,
-                    isEdgeActivated: false,
                     arguments: {},
                 },
                 {
@@ -560,11 +523,6 @@ class MattererDefinitions extends Matterer {
                 "---",
                 { blockType: Scratch.BlockType.LABEL, text: "Custom Block Executor" },
                 {
-                    blockType: Scratch.BlockType.BUTTON,
-                    text: "🔄 Refresh My Blocks List",
-                    func: "refreshCustomBlockMenu",
-                },
-                {
                     blockType: Scratch.BlockType.COMMAND,
                     opcode: "ExecuteMyBlock",
                     text: "execute [BLOCK_NAME] with [PARAMS_JSON]",
@@ -578,19 +536,45 @@ class MattererDefinitions extends Matterer {
                     opcode: "GetBlockParamTemplate",
                     text: "param template for [BLOCK_NAME]",
                     arguments: {
-                        BLOCK_NAME: { type: Scratch.ArgumentType.STRING, menu: "customBlockMenu", defaultValue: "" },
+                        BLOCK_NAME: { type: Scratch.ArgumentType.STRING, menu: "customBlockMenu", defaultValue: "" }
                     },
                 },
+                {
+                    opcode: 'getParamValueBlock',
+                    blockType: Scratch.BlockType.REPORTER,
+                    text: 'get live value of parameter [NAME]',
+                    arguments: {
+                        NAME: {
+                            type: Scratch.ArgumentType.STRING,
+                            defaultValue: 'valueT'
+                        }
+                    }
+                },
+                {
+                    opcode: 'setParamValueBlock',
+                    blockType: Scratch.BlockType.COMMAND,
+                    text: 'set live parameter [NAME] to [VALUE]',
+                    arguments: {
+                        NAME: {
+                            type: Scratch.ArgumentType.STRING,
+                            defaultValue: 'valueT'
+                        },
+                        VALUE: {
+                            type: Scratch.ArgumentType.STRING,
+                            defaultValue: 'hello'
+                        }
+                    }
+                }
             ],
             menus: {
-                typeDefinitionMenu: { items: ["string", "number", "boolean", "object"], acceptReporters: true },
-                BooleanPickerMenu: { items: ["TRUE", "FALSE"], acceptReporters: true },
-                AnimationDirectionChoice: { items: ["IN", "OUT"], acceptReporters: true },
-                AnimationStyleChoice: { items: ["linear", "easeIn", "easeOut", "easeInOut", "bounce"], acceptReporters: false },
-                AnimatingStateTypeRequestMenu: { items: ["animating", "not animating"], acceptReporters: true },
-                AnimationControlStateMenu: { items: ["STOP", "PAUSE", "RESUME"], acceptReporters: false },
-                customBlockMenu: { acceptReporters: true, items: "getCustomBlockMenuItems" },
-            },
+                typeDefinitionMenu: { acceptReporters: false, items: ["string", "number", "boolean", "object"] },
+                BooleanPickerMenu: { acceptReporters: false, items: ["TRUE", "FALSE"] },
+                AnimationDirectionChoice: { acceptReporters: false, items: ["IN", "OUT"] },
+                AnimationStyleChoice: { acceptReporters: false, items: ["linear", "easeIn", "easeOut", "easeInOut", "bounce"] },
+                AnimatingStateTypeRequestMenu: { acceptReporters: false, items: ["animating", "not animating"] },
+                AnimationControlStateMenu: { acceptReporters: false, items: ["STOP", "PAUSE", "RESUME"] },
+                customBlockMenu: { acceptReporters: true, items: "getCustomBlockMenuItems" }
+            }
         };
     }
 }
