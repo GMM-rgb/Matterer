@@ -441,11 +441,11 @@ class Matterer {
     }
 
     public TrackAnimationStartTrigger(_: {}, _u: BlockUtility): boolean {
-        return true; 
+        return true;
     }
 
     public TrackAnimationEndTrigger(_: {}, _u: BlockUtility): boolean {
-        return true; 
+        return true;
     }
 
     public checkIsAnimatingProperty(
@@ -454,7 +454,7 @@ class Matterer {
     ): boolean {
         const sprite = this.getActiveSprite(util);
         if (!sprite) return false;
-        
+
         this._updateAnimationTickerForSprite(sprite);
         const is = this.__animatingTimers.has(sprite.id);
         return REQUESTED_ANIMATING_STATE_TYPE === "animating" ? is : !is;
@@ -471,7 +471,7 @@ class Matterer {
         if (!sprite) return;
 
         const animating = this._updateAnimationTickerForSprite(sprite);
-        
+
         if (animating) {
             // Re-execute this loop node during the subsequent sequence frame pass cleanly
             util.startBranch(1, INCLUDES_SCREEN_REFRESH);
@@ -484,7 +484,7 @@ class Matterer {
     ): Promise<void> {
         const sprite = this.getActiveSprite(util);
         if (!sprite) return;
-        
+
         if (args.ANIMATION_TOGGLE_STATE === "STOP") {
             this.__animatingTimers.delete(sprite.id);
             Scratch.vm.runtime.startHats("matterer_TrackAnimationEndTrigger");
@@ -680,12 +680,12 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
                 }
             ],
             menus: {
-                typeDefinitionMenu: { acceptReporters: false, items: ["string", "number", "boolean", "object"] },
-                BooleanPickerMenu: { acceptReporters: false, items: ["TRUE", "FALSE"] },
+                typeDefinitionMenu: { acceptReporters: true, items: ["string", "number", "boolean", "object"] },
+                BooleanPickerMenu: { acceptReporters: true, items: ["TRUE", "FALSE"] },
                 AnimationDirectionChoice: { acceptReporters: false, items: ["IN", "OUT"] },
                 AnimationStyleChoice: { acceptReporters: false, items: ["linear", "easeIn", "easeOut", "easeInOut", "bounce"] },
                 AnimatingStateTypeRequestMenu: { acceptReporters: false, items: ["animating", "not animating"] },
-                AnimationControlStateMenu: { acceptReporters: false, items: ["STOP", "PAUSE", "RESUME"] },
+                AnimationControlStateMenu: { acceptReporters: true, items: ["STOP", "PAUSE", "RESUME"] },
                 customBlockMenu: { acceptReporters: true, items: "getCustomBlockMenuItems" }
             }
         };

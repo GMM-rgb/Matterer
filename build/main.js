@@ -1,3 +1,4 @@
+"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -567,12 +568,12 @@ class MattererDefinitions extends Matterer {
                 }
             ],
             menus: {
-                typeDefinitionMenu: { acceptReporters: false, items: ["string", "number", "boolean", "object"] },
-                BooleanPickerMenu: { acceptReporters: false, items: ["TRUE", "FALSE"] },
+                typeDefinitionMenu: { acceptReporters: true, items: ["string", "number", "boolean", "object"] },
+                BooleanPickerMenu: { acceptReporters: true, items: ["TRUE", "FALSE"] },
                 AnimationDirectionChoice: { acceptReporters: false, items: ["IN", "OUT"] },
                 AnimationStyleChoice: { acceptReporters: false, items: ["linear", "easeIn", "easeOut", "easeInOut", "bounce"] },
                 AnimatingStateTypeRequestMenu: { acceptReporters: false, items: ["animating", "not animating"] },
-                AnimationControlStateMenu: { acceptReporters: false, items: ["STOP", "PAUSE", "RESUME"] },
+                AnimationControlStateMenu: { acceptReporters: true, items: ["STOP", "PAUSE", "RESUME"] },
                 customBlockMenu: { acceptReporters: true, items: "getCustomBlockMenuItems" }
             }
         };
