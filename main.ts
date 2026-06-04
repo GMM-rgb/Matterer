@@ -163,36 +163,61 @@ class MattererBundleExecutor {
             return;
         }
 
-        let parsedArgs: any = [];
+        let parsedArgs: ArrayLike<any> = [];
         const trimmed = paramsJson?.trim();
 
-        if (trimmed && trimmed !== "{}" && trimmed !== "[]") {
+        if (trimmed !== null && typeof trimmed === 'string' && trimmed !== "{}" && trimmed !== "[]") {
             try {
                 parsedArgs = JSON.parse(trimmed);
-                console.log("[Parsed Data Match]: Successfully resolved JSON payload structure.", parsedArgs);
+                console.info("[Parsed Data Match]: Successfully resolved JSON payload structure.", parsedArgs);
                 if (typeof parsedArgs !== "object" || parsedArgs === null) {
-                    parsedArgs = [parsedArgs];
+                    parsedArgs ??= [parsedArgs];
                 }
             } catch (jsonErr) {
                 console.warn(`[Matterer JSON Warning] Payload parsing failed. Treating as literal input string. Error:`, jsonErr);
-                parsedArgs = [trimmed];
+                parsedArgs ??= [trimmed];
             }
-        } else {
-            console.log("[Parsed Data Match]: Payload is empty/default object.");
+        } else { console.warn("[Parsed Data Match]: Payload is empty/default object."); }
+
+        console.debug(util ? util.thread.topBlock : 0);
+        const runtime = util?.runtime ?? this.getRuntime();
+        const index = this.buildProcedureIndex(runtime);
+        const meta = index.get(blockName) as ProcedureMeta;
+        if (typeof ScratchBlocks === 'undefined') return;
+
+        let TemporaryImporterWorkspace = new globalThis.ScratchBlocks.Workspace();
+        TemporaryImporterWorkspace.id ??= Math.floor(Math.random() * 100).toString();
+
+        for (let OverrideIndex = 0; OverrideIndex < parsedArgs.length; OverrideIndex++) {
+            if (OverrideIndex !== null && isFinite(OverrideIndex) && !isNaN(OverrideIndex)) {
+                const ImportWorkspaceType = typeof TemporaryImporterWorkspace;
+                const DoesSpecifyArray = Boolean(Array.isArray(parsedArgs));
+                const ListingArguments = Array.from(parsedArgs).entries();
+                const SpecifiesArrayMsg = globalThis.toString != null ?
+                    toString?.call<boolean, Array<any>, string>(DoesSpecifyArray)
+                    ?? new String(globalThis.undefined).valueOf().normalize("NFC")
+                    : "Debug information couldn't be parse for override array!";
+
+                TemporaryImporterWorkspace && ImportWorkspaceType !== "undefined"
+                    && TemporaryImporterWorkspace instanceof ScratchBlocks.Workspace ?
+                    Function.bind((() => {
+
+                    })()) : void null;
+            }
         }
 
-        const runtime = util.runtime ?? this.getRuntime();
-        const index = this.buildProcedureIndex(runtime);
-        const meta = index.get(blockName);
 
-        if (!meta) {
+
+        if (!meta || Object.entries(meta).length < 1) {
             console.error(`[Matterer Fatal Error] Execution failed. No custom block matching definition: "${blockName}" exists.`);
             console.groupEnd();
             return;
         }
 
-        this.spawnThread(meta, parsedArgs, util, runtime);
-        console.groupEnd();
+        if (meta !== null && !(Object.keys(meta).length <= 0)) {
+            this.spawnThread(meta, parsedArgs, util, runtime);
+            console.groupEnd();
+        }
     }
 
     private buildProcedureIndex(runtime: any): Map<string, ProcedureMeta> {

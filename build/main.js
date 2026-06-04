@@ -119,7 +119,7 @@ class MattererBundleExecutor {
         return JSON.stringify(tpl);
     }
     execute(blockNameRaw, paramsJson, util) {
-        var _a;
+        var _a, _b, _c;
         const blockName = normalizeBlockName(blockNameRaw);
         console.groupCollapsed(`[Matterer Execution] Invoking Block: "${blockName}"`);
         console.log(`[Raw Payload]:`, paramsJson);
@@ -130,32 +130,53 @@ class MattererBundleExecutor {
         }
         let parsedArgs = [];
         const trimmed = paramsJson === null || paramsJson === void 0 ? void 0 : paramsJson.trim();
-        if (trimmed && trimmed !== "{}" && trimmed !== "[]") {
+        if (trimmed !== null && typeof trimmed === 'string' && trimmed !== "{}" && trimmed !== "[]") {
             try {
                 parsedArgs = JSON.parse(trimmed);
-                console.log("[Parsed Data Match]: Successfully resolved JSON payload structure.", parsedArgs);
+                console.info("[Parsed Data Match]: Successfully resolved JSON payload structure.", parsedArgs);
                 if (typeof parsedArgs !== "object" || parsedArgs === null) {
-                    parsedArgs = [parsedArgs];
+                    parsedArgs !== null && parsedArgs !== void 0 ? parsedArgs : (parsedArgs = [parsedArgs]);
                 }
             }
             catch (jsonErr) {
                 console.warn(`[Matterer JSON Warning] Payload parsing failed. Treating as literal input string. Error:`, jsonErr);
-                parsedArgs = [trimmed];
+                parsedArgs !== null && parsedArgs !== void 0 ? parsedArgs : (parsedArgs = [trimmed]);
             }
         }
         else {
-            console.log("[Parsed Data Match]: Payload is empty/default object.");
+            console.warn("[Parsed Data Match]: Payload is empty/default object.");
         }
-        const runtime = (_a = util.runtime) !== null && _a !== void 0 ? _a : this.getRuntime();
+        console.debug(util ? util.thread.topBlock : 0);
+        const runtime = (_a = util === null || util === void 0 ? void 0 : util.runtime) !== null && _a !== void 0 ? _a : this.getRuntime();
         const index = this.buildProcedureIndex(runtime);
         const meta = index.get(blockName);
-        if (!meta) {
+        if (typeof ScratchBlocks === 'undefined')
+            return;
+        let TemporaryImporterWorkspace = new globalThis.ScratchBlocks.Workspace();
+        (_b = TemporaryImporterWorkspace.id) !== null && _b !== void 0 ? _b : (TemporaryImporterWorkspace.id = Math.floor(Math.random() * 100).toString());
+        for (let OverrideIndex = 0; OverrideIndex < parsedArgs.length; OverrideIndex++) {
+            if (OverrideIndex !== null && isFinite(OverrideIndex) && !isNaN(OverrideIndex)) {
+                const ImportWorkspaceType = typeof TemporaryImporterWorkspace;
+                const DoesSpecifyArray = Boolean(Array.isArray(parsedArgs));
+                const ListingArguments = Array.from(parsedArgs).entries();
+                const SpecifiesArrayMsg = globalThis.toString != null ?
+                    (_c = toString === null || toString === void 0 ? void 0 : toString.call(DoesSpecifyArray)) !== null && _c !== void 0 ? _c : new String(globalThis.undefined).valueOf().normalize("NFC")
+                    : "Debug information couldn't be parse for override array!";
+                TemporaryImporterWorkspace && ImportWorkspaceType !== "undefined"
+                    && TemporaryImporterWorkspace instanceof ScratchBlocks.Workspace ?
+                    Function.bind((() => {
+                    })()) : void null;
+            }
+        }
+        if (!meta || Object.entries(meta).length < 1) {
             console.error(`[Matterer Fatal Error] Execution failed. No custom block matching definition: "${blockName}" exists.`);
             console.groupEnd();
             return;
         }
-        this.spawnThread(meta, parsedArgs, util, runtime);
-        console.groupEnd();
+        if (meta !== null && !(Object.keys(meta).length <= 0)) {
+            this.spawnThread(meta, parsedArgs, util, runtime);
+            console.groupEnd();
+        }
     }
     buildProcedureIndex(runtime) {
         var _a, _b, _c, _d, _e, _f;
