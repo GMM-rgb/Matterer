@@ -703,7 +703,7 @@ class MattererBundleExecutor {
             console.debug(pcv.target);
         });
 
-        return [];
+        return procedureArray;
     }
 
     private spawnThread(meta: ProcedureMeta, parsedArgs: unknown, runtime: any): void {

@@ -488,7 +488,7 @@ class MattererBundleExecutor {
         procedureArray.forEach((pcv) => {
             console.debug(pcv.target);
         });
-        return [];
+        return procedureArray;
     }
     spawnThread(meta, parsedArgs, runtime) {
         const arrayArgs = Array.isArray(parsedArgs) ? parsedArgs : null;
