@@ -450,6 +450,7 @@ class MattererBundleExecutor {
             for (const [blockId, block] of Object.entries(blocks)) {
                 if ((block === null || block === void 0 ? void 0 : block.opcode) !== "procedures_definition")
                     continue;
+                console.debug(block);
                 const protoId = this.resolveProtoId((_b = block.inputs) === null || _b === void 0 ? void 0 : _b.custom_block, blocks);
                 if (!protoId)
                     continue;
@@ -479,6 +480,15 @@ class MattererBundleExecutor {
             }
         }
         return index;
+    }
+    buildDefinitionBlockList(_u) {
+        const procedure = this.buildProcedureIndex(_u.runtime);
+        const procedureValues = procedure === null || procedure === void 0 ? void 0 : procedure.values();
+        const procedureArray = Array.from(procedureValues);
+        procedureArray.forEach((pcv) => {
+            console.debug(pcv.target);
+        });
+        return [];
     }
     spawnThread(meta, parsedArgs, runtime) {
         const arrayArgs = Array.isArray(parsedArgs) ? parsedArgs : null;
@@ -1019,6 +1029,9 @@ class Matterer {
         }
         return true;
     }
+    getDefinitionBlocks(_, _u) {
+        return this.executor.buildDefinitionBlockList(_u);
+    }
 }
 Matterer.waitOneFrame = () => new Promise(r => requestAnimationFrame(() => r()));
 Matterer.MaxTransparency = 100;
@@ -1221,6 +1234,11 @@ class MattererDefinitions extends Matterer {
                             defaultValue: 'hello'
                         }
                     }
+                },
+                {
+                    opcode: "getDefinitionBlocks",
+                    blockType: Scratch.BlockType.REPORTER,
+                    text: "get block definitions",
                 }
             ],
             menus: {

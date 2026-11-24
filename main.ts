@@ -660,6 +660,8 @@ class MattererBundleExecutor {
             for (const [blockId, block] of Object.entries(blocks) as [string, any][]) {
                 if (block?.opcode !== "procedures_definition") continue;
 
+                console.debug(block);
+
                 const protoId = this.resolveProtoId(block.inputs?.custom_block, blocks);
                 if (!protoId) continue;
 
@@ -690,6 +692,18 @@ class MattererBundleExecutor {
         }
 
         return index;
+    }
+
+    public buildDefinitionBlockList(_u: BlockUtility): any[] {
+        const procedure = this.buildProcedureIndex(_u.runtime);
+        const procedureValues = procedure?.values();
+        const procedureArray = Array.from(procedureValues);
+
+        procedureArray.forEach((pcv: ProcedureMeta): void => {
+            console.debug(pcv.target);
+        });
+
+        return [];
     }
 
     private spawnThread(meta: ProcedureMeta, parsedArgs: unknown, runtime: any): void {
@@ -1562,6 +1576,12 @@ class Matterer {
 
     }
 
+    public getDefinitionBlocks(_: {}, _u: BlockUtility): any[] {
+
+        return this.executor.buildDefinitionBlockList(_u);
+
+    }
+
 }
 
 
@@ -1914,6 +1934,16 @@ class MattererDefinitions extends Matterer implements Scratch.Extension {
 
                     }
 
+                },
+
+                {
+
+                    opcode: "getDefinitionBlocks",
+
+                    blockType: Scratch.BlockType.REPORTER,
+
+                    text: "get block definitions",
+                    
                 }
 
             ],
